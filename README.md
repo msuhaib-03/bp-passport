@@ -27,12 +27,14 @@ npm run dev          # http://localhost:3000 → redirects to /en
 ```
 
 ```bash
-npm run check        # typecheck + full clinical test suite
-npm test             # 68 tests, including all 243 lifestyle combinations
+npm test             # 106 tests
+npm run test:clinical # 68 — clinical logic, incl. all 243 lifestyle combinations
+npm run test:db      # 38 — migrations + RLS, against real Postgres via PGlite
+npm run check        # typecheck + full suite
 npm run build        # production build
 ```
 
-No environment variables are required to run the MVP. The browser is the system of record (see [Data](#data)).
+No environment variables are required to run the MVP — the browser is the system of record (see [Data](#data)). Copy `.env.example` to `.env.local` when you wire up the database.
 
 ---
 
@@ -164,11 +166,18 @@ The MVP stores everything on the device. No account, no server round-trip — wh
 - The BP reading is **never** put in a URL. A query string ends up in browser history, server logs and analytics; health data does not belong there.
 - Passport IDs (`PE-XXXX`) exclude `I`, `O`, `0` and `1` — indistinguishable when read aloud at a clinic desk.
 
-### When this moves to a server
+### The server-side schema — built, not yet wired
 
-`lib/storage.ts` is the only file that changes. The production target is PostgreSQL with row-level security, `pgcrypto` for column-level PII encryption, and an append-only audit log — self-hosted on PTCL Tier III for PDPB data localisation.
+`db/migrations/` holds the full PostgreSQL schema: nine tables, row-level security forced on every one, an append-only audit log, a consent ledger, and a consented + k-anonymised research schema. See **[db/README.md](db/README.md)**.
 
-One correction to carry forward from the architecture documents: **phone numbers must not be hashed with plain SHA-256.** A Pakistani mobile number has roughly 10⁹ possible values, which is brute-forceable in seconds — the hash is not anonymisation. Use HMAC-SHA256 with a server-side pepper, or Argon2id.
+It is verified rather than asserted: `npm run test:db` applies the migrations to a real Postgres 18 (PGlite/WASM) and proves the behaviour — that one patient cannot read another's readings, that a clinician's access dies the instant a share is revoked or expires, that an unverified PMDC registration gets nothing, that the audit log survives `DELETE`, and that research cells below k = 5 are suppressed.
+
+Two corrections carried forward from the architecture documents:
+
+- **Phone numbers are not hashed with bare SHA-256.** A Pakistani mobile has roughly 10⁹ possible values, so an unpeppered digest is exhaustible in seconds and is not anonymisation. HMAC-SHA256 with a server-side pepper, computed in the app so the database never holds the secret.
+- **Consent is a first-class append-only table.** The documents described a pharma-affiliated research dataset built from patient readings with no consent model at all. `has_consent()` returns false when no record exists — absence of consent is refusal, never assent.
+
+Switching the app over touches one file, `lib/storage.ts`, because everything is behind that interface.
 
 ---
 
