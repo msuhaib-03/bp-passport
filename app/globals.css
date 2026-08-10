@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BP PASSPORT DESIGN SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Palette derives from the brand mark: a navy shield holding a heart that runs
+   cyan on one side and coral on the other. That gradient is not decoration —
+   it is the risk scale, so the product's colour language and its clinical
+   language are the same thing.
+
+   THREE CONSTRAINTS SHAPED EVERY CHOICE BELOW
+   -------------------------------------------
+   1. COLOUR-VISION SAFETY. Red/green is the most common deficiency
+      (~8% of men; higher in South Asian populations). The clinical scale
+      therefore runs CYAN → AMBER → CORAL, never green → red. Cyan against
+      orange is the most robust pair across protanopia, deuteranopia and
+      tritanopia. Colour is also never the only signal: every risk state
+      additionally carries a distinct label, an icon and a position on a scale.
+
+   2. AGE AND LITERACY RANGE. Users are 18 to 70+, and many read Urdu more
+      comfortably than English. Base body text is 17px (not 16), minimum tap
+      target is 56px (not 44), and line-height is generous. Nothing depends on
+      hover, and nothing depends on reading a number smaller than 15px.
+
+   3. HEALTH ANXIETY. A screening tool that frightens people loses them.
+      Saturated red is reserved exclusively for genuine emergencies
+      (hypertensive crisis). Elevated states use amber and coral, which read as
+      "attention" rather than "alarm".
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Brand, sampled from the logo vector ─────────────────────────────── */
+  --color-ink-950: #081321; /* shield outline — deepest surface */
+  --color-ink-900: #0c1c30; /* shield interior — primary dark surface */
+  --color-ink-800: #14283f;
+  --color-ink-700: #1e3752;
+  --color-ink-600: #33506e;
+  --color-ink-500: #4a6684;
+  --color-ink-400: #7189a3;
+  --color-ink-300: #a3b4c6;
+  --color-ink-200: #cbd6e1;
+  --color-ink-100: #e6ecf2;
+  --color-ink-50: #f4f7fa;
+
+  --color-cyan-600: #0e8fa3;
+  --color-cyan-500: #14b8c4;
+  --color-cyan-400: #22c3d6; /* logo shield accent */
+  --color-cyan-300: #6ee7f2;
+  --color-cyan-100: #d4f5f9;
+
+  --color-sky-500: #38bdf8; /* logo heart, cyan half */
+  --color-coral-500: #fb7350; /* logo heart, coral half */
+  --color-orange-500: #f97316;
+  --color-pink-500: #ec4899; /* "BP" wordmark */
+  --color-blue-600: #2563eb; /* "PASSPORT" wordmark */
+
+  /* ── Clinical risk scale: cyan → amber → coral ───────────────────────────
+     One colour per ISH 2020 category. Ordered, perceptually separable, and
+     colour-vision safe. `-ink` variants are the accessible text colour to use
+     ON the corresponding surface tint. */
+  --color-risk-optimal: #0e9aa7;
+  --color-risk-optimal-soft: #e0f6f8;
+  --color-risk-optimal-ink: #075c65;
+
+  --color-risk-normal: #2b8fc4;
+  --color-risk-normal-soft: #e2f0f9;
+  --color-risk-normal-ink: #16506f;
+
+  --color-risk-high-normal: #d18a1c;
+  --color-risk-high-normal-soft: #fdf2dc;
+  --color-risk-high-normal-ink: #6f4708;
+
+  --color-risk-grade1: #e2683a;
+  --color-risk-grade1-soft: #fdeae2;
+  --color-risk-grade1-ink: #853213;
+
+  --color-risk-grade2: #cf4430;
+  --color-risk-grade2-soft: #fce6e2;
+  --color-risk-grade2-ink: #7a2113;
+
+  /* Emergency. The ONLY saturated red in the system. */
+  --color-risk-crisis: #b3261e;
+  --color-risk-crisis-soft: #fbe3e1;
+  --color-risk-crisis-ink: #6b120d;
+
+  /* ── Semantic surfaces ───────────────────────────────────────────────── */
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f4f7fa;
+  --color-surface-raised: #ffffff;
+  --color-border: #dfe7ee;
+  --color-border-strong: #c2ceda;
+
+  /* ── Type ────────────────────────────────────────────────────────────────
+     Latin: system UI stack — already installed, renders instantly, no layout
+     shift, and matches what users see elsewhere on their phone.
+     Urdu: Noto Nastaliq Urdu for headings (culturally correct calligraphic
+     form) and Noto Sans Arabic for UI (legible at small sizes and in dense
+     data views, where Nastaliq's steep baseline becomes hard to read). */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-urdu: "Noto Sans Arabic", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif;
+  --font-urdu-display: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  /* Numeric readouts (a BP value, a score) use tabular figures so digits do
+     not jitter as values change. */
+  --font-numeric: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  /* ── Scale ───────────────────────────────────────────────────────────── */
+  --text-xs: 0.8125rem; /* 13px — captions only, never body */
+  --text-sm: 0.9375rem; /* 15px — smallest permitted interactive label */
+  --text-base: 1.0625rem; /* 17px — body. Deliberately above the 16px default. */
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.625rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3.25rem;
+  --text-6xl: 4.25rem;
+
+  --radius-sm: 0.5rem;
+  --radius: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-pill: 999px;
+
+  /* Minimum tap target. WCAG asks 44px; we use 56px because a meaningful share
+     of users are over 60 or using a phone one-handed on a bus. */
+  --size-tap: 3.5rem;
+
+  --shadow-card: 0 1px 2px rgb(8 19 33 / 0.04), 0 4px 16px rgb(8 19 33 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(8 19 33 / 0.06), 0 12px 32px rgb(8 19 33 / 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-surface-sunken);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Urdu: switch family, loosen line-height (Nastaliq needs vertical room),
+     and let the browser handle mirroring via dir="rtl" on <html>. */
+  html[lang="ur"] body {
+    font-family: var(--font-urdu);
+    line-height: 1.95;
+  }
+  html[lang="ur"] h1,
+  html[lang="ur"] h2,
+  html[lang="ur"] h3 {
+    font-family: var(--font-urdu-display);
+    line-height: 2.1;
+  }
+
+  /* Numbers stay left-to-right and in Western Arabic numerals even in RTL —
+     Pakistani users read these fluently, and mirroring a BP reading like
+     "128/84" would make it ambiguous. */
+  [dir="rtl"] .numeric,
+  .numeric {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-family: var(--font-numeric);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  /* Visible focus for keyboard and switch-control users. Never removed. */
+  :focus-visible {
+    outline: 3px solid var(--color-cyan-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  button, [role="button"], a, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  /* Respect the OS setting. Vestibular disorders are common in the
+     hypertensive population this app serves. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  /* Logical-property helpers so one class works in both text directions. */
+  .ps-safe { padding-inline-start: 1rem; }
+  .pe-safe { padding-inline-end: 1rem; }
+
+  .tap {
+    min-height: var(--size-tap);
+    min-width: var(--size-tap);
+  }
+
+  .card {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* The brand gradient, used sparingly: the score gauge and the primary CTA. */
+  .brand-gradient {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-cyan-400) 0%,
+      var(--color-sky-500) 45%,
+      var(--color-coral-500) 100%
+    );
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Emergency card pulse. Motion is the third redundant signal after colour
+     and text, and it is suppressed under prefers-reduced-motion above. */
+  @keyframes urgent-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(179 38 30 / 0.35); }
+    50% { box-shadow: 0 0 0 12px rgb(179 38 30 / 0); }
+  }
+  .urgent-pulse { animation: urgent-pulse 2s ease-out infinite; }
+}

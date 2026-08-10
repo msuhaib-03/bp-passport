@@ -1,0 +1,168 @@
+{
+  "brand": {
+    "name": "BP Passport",
+    "tagline": "Scan your pressure. Protect your performance.",
+    "free": "Always free"
+  },
+  "common": {
+    "next": "Next",
+    "back": "Back",
+    "start": "Start",
+    "finish": "Finish",
+    "skip": "Skip for now",
+    "close": "Close",
+    "of": "of",
+    "step": "Step",
+    "switchLanguage": "اردو میں دیکھیں",
+    "mmhg": "mmHg",
+    "systolic": "Systolic",
+    "diastolic": "Diastolic",
+    "upper": "Upper number",
+    "lower": "Lower number"
+  },
+  "landing": {
+    "eyebrow": "Free health check",
+    "title": "Know your blood pressure in 60 seconds.",
+    "subtitle": "No app to download. No forms. No cost. Seven simple questions and you'll see exactly where you stand — and the one thing worth changing first.",
+    "cta": "Start my free check",
+    "reassure": {
+      "time": "Takes about 60 seconds",
+      "private": "Your answers stay on your phone",
+      "noCuff": "You can do it without a BP machine"
+    },
+    "why": {
+      "title": "Why this matters",
+      "stat1Value": "1 in 3",
+      "stat1Label": "Pakistani adults live with high blood pressure",
+      "stat2Value": "1 in 4",
+      "stat2Label": "have never had their blood pressure measured, even once",
+      "stat3Value": "No symptoms",
+      "stat3Label": "High blood pressure usually gives no warning signs at all"
+    },
+    "disclaimerTitle": "This is a health check, not a diagnosis",
+    "disclaimer": "BP Passport helps you understand your readings and track them over time. Only a doctor can diagnose high blood pressure or prescribe treatment."
+  },
+  "audit": {
+    "title": "Heart Audit",
+    "progress": "Question {current} of {total}",
+    "sleep": {
+      "question": "How many hours do you usually sleep at night?",
+      "help": "Short sleep raises your blood pressure overnight.",
+      "good": "7 to 9 hours",
+      "fair": "6 to 7 hours",
+      "poor": "Less than 6 hours"
+    },
+    "sodium": {
+      "question": "How much salt is in your usual food?",
+      "help": "Salt is the fastest thing most people can change.",
+      "good": "Light — I don't add extra salt",
+      "fair": "Normal home cooking",
+      "poor": "Extra salt, achar or papad most days"
+    },
+    "stress": {
+      "question": "How often do you feel tense or under pressure?",
+      "help": "Ongoing stress keeps your pressure raised.",
+      "good": "Rarely",
+      "fair": "A few times a week",
+      "poor": "Almost every day"
+    },
+    "stimulants": {
+      "question": "How many cups of chai, coffee or energy drinks a day?",
+      "help": "Each cup lifts your pressure for a few hours.",
+      "good": "One or none",
+      "fair": "Two or three",
+      "poor": "Four or more"
+    },
+    "activity": {
+      "question": "How many days a week do you walk or exercise for 30 minutes?",
+      "help": "A daily walk lowers pressure as much as some medicines.",
+      "good": "Five days or more",
+      "fair": "One or two days",
+      "poor": "Rarely or never"
+    },
+    "lastCheck": {
+      "question": "When did you last have your blood pressure measured?",
+      "help": "This tells us how overdue a check might be.",
+      "good": "Within the last year",
+      "fair": "More than a year ago",
+      "poor": "Never"
+    },
+    "reading": {
+      "question": "Enter your blood pressure, if you have it.",
+      "help": "Read it from the machine or from your last report. The bigger number goes on top.",
+      "haveIt": "I have a reading",
+      "dontHaveIt": "I don't have one right now",
+      "noReadingNote": "No problem — we'll show your lifestyle score, and where to get measured free.",
+      "invalidPair": "The upper number needs to be higher than the lower number. Check you haven't swapped them.",
+      "outOfRange": "That doesn't look like a blood-pressure reading. Please check the numbers."
+    }
+  },
+  "result": {
+    "eyebrow": "Your result",
+    "scoreTitle": "Your Heart Score",
+    "scoreOutOf": "out of 100",
+    "scoreExplainer": "This score reflects the five habits you can change. It is not a diagnosis.",
+    "band": {
+      "strong": "Strong",
+      "moderate": "Room to improve",
+      "needs_attention": "Needs attention",
+      "at_risk": "Needs action"
+    },
+    "readingTitle": "Your reading",
+    "categoryTitle": "What this reading means",
+    "category": {
+      "optimal": "Optimal range",
+      "normal": "Normal range",
+      "high_normal": "High-normal range",
+      "grade_1": "Grade 1 range",
+      "grade_2": "Grade 2 range"
+    },
+    "categoryExplain": {
+      "optimal": "This reading is in the optimal range. Keep doing what you're doing, and check again in a year.",
+      "normal": "This reading is in the normal range. Worth checking once a year to be sure it stays there.",
+      "high_normal": "This reading is above the normal range but below the hypertension range. Habits make a real difference at this stage. Check again in a few months.",
+      "grade_1": "This reading is in the Grade 1 range. One reading is not a diagnosis — but it's worth showing a doctor and measuring again over the next two weeks.",
+      "grade_2": "This reading is in the Grade 2 range. Please see a doctor this week and take your readings with you."
+    },
+    "leversTitle": "Start with this",
+    "leversSubtitle": "These habits are costing you the most points. Fixing the top two would take you to {projected}.",
+    "leverGain": "+{points} points",
+    "factor": {
+      "sleep": "Sleep",
+      "sodium": "Salt",
+      "stress": "Stress",
+      "stimulants": "Chai & coffee",
+      "activity": "Movement"
+    },
+    "tip": {
+      "sleep": "Aim to be in bed 30 minutes earlier this week. Even one extra hour helps.",
+      "sodium": "Skip the salt shaker at the table and cut achar to twice a week. Use lemon, garlic or green chilli for taste instead.",
+      "stress": "Try 4-7-8 breathing once a day: breathe in for 4 counts, hold 7, out for 8.",
+      "stimulants": "Swap one chai for water. Keep the last cup before 4pm.",
+      "activity": "A 30-minute walk after dinner, five days a week. Start with ten minutes if that's easier."
+    },
+    "nextTitle": "Keep your Passport",
+    "nextBody": "Save this result and log your readings over time. When you see a doctor, you can show them a clear 14-day chart instead of trying to remember.",
+    "nextCta": "Save my Passport",
+    "retake": "Start over",
+    "disclaimer": "BP Passport gives you information about your readings. It does not diagnose any condition and does not recommend any medicine. Always speak to a doctor about treatment."
+  },
+  "emergency": {
+    "title": "Please get help now",
+    "body": "The reading or symptom you entered needs urgent medical attention. Do not wait for this to pass.",
+    "readingBody": "A reading this high needs to be checked by a doctor today, not next week.",
+    "callNicvd": "Call NICVD — {number}",
+    "callRescue": "Call Rescue {number}",
+    "goNow": "Go to the nearest emergency room now",
+    "ack": "I understand"
+  },
+  "scale": {
+    "title": "Where this reading sits",
+    "optimal": "Optimal",
+    "normal": "Normal",
+    "high_normal": "High-normal",
+    "grade_1": "Grade 1",
+    "grade_2": "Grade 2",
+    "yourReading": "Your reading"
+  }
+}
