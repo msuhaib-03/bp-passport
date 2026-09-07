@@ -16,7 +16,12 @@ import {
   readPassport,
   type Passport,
 } from "@/lib/storage";
-import { syncNewPassport, syncReading } from "@/lib/supabase/persistence";
+import {
+  fetchCloudPassport,
+  isCloudPersistenceConfigured,
+  syncNewPassport,
+  syncReading,
+} from "@/lib/supabase/persistence";
 import { summariseSeries, type BpReading } from "@/lib/clinical/bp-classification";
 import { CATEGORY_VISUAL } from "@/lib/clinical/presentation";
 import type { LifestyleAnswers } from "@/lib/clinical/heart-score";
@@ -48,29 +53,52 @@ export function PassportView() {
   const [passport, setPassport] = useState<Passport | null>(null);
   const [logging, setLogging] = useState(false);
   const [ready, setReady] = useState(false);
+  const [cloudState, setCloudState] = useState<"connected" | "offline" | "syncing">("syncing");
 
   useEffect(() => {
-    const existing = readPassport();
-    if (existing) {
-      setPassport(existing);
-      setReady(true);
-      return;
+    let cancelled = false;
+    async function load() {
+      const existing = readPassport();
+      try {
+        const cloud = await fetchCloudPassport();
+        if (cancelled) return;
+        if (cloud) {
+          setPassport(cloud);
+          localStorage.setItem("bpp.passport.v1", JSON.stringify(cloud));
+          setCloudState("connected");
+          setReady(true);
+          return;
+        }
+
+        const draft = readDraft();
+        const answers = draft?.answers as LifestyleAnswers | undefined;
+        if (answers) {
+          const created = createPassport({
+            answers,
+            reading: draft?.reading ?? null,
+            campaign: draft?.campaign,
+          });
+          setPassport(created);
+          await syncNewPassport(created);
+          setCloudState("connected");
+        } else if (existing) {
+          setPassport(existing);
+          await syncNewPassport(existing);
+          setCloudState("connected");
+        } else {
+          setCloudState("connected");
+        }
+      } catch {
+        if (existing) setPassport(existing);
+        setCloudState(isCloudPersistenceConfigured() ? "offline" : "offline");
+      } finally {
+        if (!cancelled) setReady(true);
+      }
     }
-    // First visit after finishing the audit: mint the Passport from the draft.
-    const draft = readDraft();
-    const answers = draft?.answers as LifestyleAnswers | undefined;
-    if (answers) {
-      const created = createPassport({
-        answers,
-        reading: draft?.reading ?? null,
-        campaign: draft?.campaign,
-      });
-      setPassport(created);
-      void syncNewPassport(created).catch(() => {
-        // Local storage remains the offline fallback; cloud sync can retry on a later flow.
-      });
-    }
-    setReady(true);
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLog = (reading: BpReading | null) => {
@@ -140,6 +168,13 @@ export function PassportView() {
           )}
         </div>
       </section>
+
+      <p className="mt-3 text-center text-sm text-ink-500" role="status">
+        {cloudState === "connected" ? "Cloud backup connected" : cloudState === "syncing" ? "Connecting to cloud backup..." : "Offline mode: saved on this device"}
+      </p>
+      <Link href="/account" className="mt-2 block text-center text-sm font-semibold text-cyan-600">
+        Sign in or manage account
+      </Link>
 
       {/* ── Log action, kept at the top where the habit forms ─────────── */}
       {!logging && (

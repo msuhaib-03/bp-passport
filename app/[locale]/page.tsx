@@ -52,7 +52,12 @@ export default async function LandingPage({
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 pt-5">
         <LogoLockup size={38} />
-        <LocaleSwitch />
+        <div className="flex items-center gap-3">
+          <Link href="/account" className="text-sm font-semibold text-ink-600 hover:text-cyan-600">
+            Account
+          </Link>
+          <LocaleSwitch />
+        </div>
       </header>
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
