@@ -34,7 +34,66 @@ npm run check        # typecheck + full suite
 npm run build        # production build
 ```
 
-No environment variables are required to run the MVP — the browser is the system of record (see [Data](#data)). Copy `.env.example` to `.env.local` when you wire up the database.
+No environment variables are required to run the offline fallback. To enable cloud persistence, copy `.env.example` to `.env.local`, apply migrations `0001` through `0007`, and enable Supabase Anonymous Sign-Ins. The app then creates a Supabase Auth identity per browser and syncs completed audits and readings while retaining local storage as an offline fallback.
+
+## Connected deployment
+
+The backend API lives in this same Next.js application under `app/api/`. It can
+run together with the pages or as a second deployment of the same repository:
+
+```text
+Browser → Vercel web → Render /api/* → Supabase Auth + PostgreSQL
+```
+
+### Vercel web environment
+
+Root directory: repository root. Build command: `npm run build`.
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-or-anon-key>
+NEXT_PUBLIC_API_URL=https://<render-api-host>
+NEXT_PUBLIC_CONSENT_POLICY_VERSION=v1
+```
+
+### Render API environment
+
+Root directory: repository root. Build command: `npm install && npm run build`.
+Start command: `npm start`.
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-or-anon-key>
+WEB_ORIGIN=https://<vercel-web-host>
+NEXT_PUBLIC_CONSENT_POLICY_VERSION=v1
+```
+
+`WEB_ORIGIN` is backend-only CORS configuration. Set it to the exact Vercel
+origin, without a trailing slash. `NEXT_PUBLIC_API_URL` points the browser to
+Render. For a single combined deployment, leave `NEXT_PUBLIC_API_URL` and
+`WEB_ORIGIN` empty.
+
+The current patient routes use the user's Supabase bearer token and database
+RLS. `SUPABASE_SERVICE_ROLE_KEY` is intentionally not needed by them and must
+remain server-only for future admin and background operations.
+
+Before either deployment, apply migrations `0001` through `0007` and enable
+Supabase Authentication → Providers → Anonymous Sign-Ins.
+
+### Current product scope
+
+The connected implementation covers the existing patient flow: audit, results,
+passport creation, and longitudinal reading submission. Phone login, clinician
+portal, admin dashboard, exports, and campaign management are not present as
+routes in this repository yet; they require additional screens, authorization
+rules, and API contracts rather than environment variables.
+
+Available API routes:
+
+- `GET /api/health`
+- `GET /api/v1/passports`
+- `POST /api/v1/passports`
+- `POST /api/v1/readings`
 
 ---
 

@@ -16,6 +16,7 @@ import {
   readPassport,
   type Passport,
 } from "@/lib/storage";
+import { syncNewPassport, syncReading } from "@/lib/supabase/persistence";
 import { summariseSeries, type BpReading } from "@/lib/clinical/bp-classification";
 import { CATEGORY_VISUAL } from "@/lib/clinical/presentation";
 import type { LifestyleAnswers } from "@/lib/clinical/heart-score";
@@ -59,13 +60,15 @@ export function PassportView() {
     const draft = readDraft();
     const answers = draft?.answers as LifestyleAnswers | undefined;
     if (answers) {
-      setPassport(
-        createPassport({
-          answers,
-          reading: draft?.reading ?? null,
-          campaign: draft?.campaign,
-        }),
-      );
+      const created = createPassport({
+        answers,
+        reading: draft?.reading ?? null,
+        campaign: draft?.campaign,
+      });
+      setPassport(created);
+      void syncNewPassport(created).catch(() => {
+        // Local storage remains the offline fallback; cloud sync can retry on a later flow.
+      });
     }
     setReady(true);
   }, []);
@@ -74,7 +77,12 @@ export function PassportView() {
     setLogging(false);
     if (!reading) return;
     const updated = appendReading({ ...reading, at: new Date().toISOString() });
-    if (updated) setPassport(updated);
+    if (updated) {
+      setPassport(updated);
+      void syncReading(updated.readings[updated.readings.length - 1]!).catch(() => {
+        // Keep the local reading when the network or Supabase is unavailable.
+      });
+    }
   };
 
   if (!ready) {

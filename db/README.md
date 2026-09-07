@@ -18,6 +18,7 @@ They are ordered and idempotent — safe to re-run.
 | `0004_audit.sql` | `audit_log`, immutability rules, `log_audit()`, share/consent triggers |
 | `0005_rls.sql` | Roles, grants, every RLS policy |
 | `0006_views.sql` | `patient_bp_summary()`, `research.*` |
+| `0007_passport_code.sql` | Public `PE-XXXX` identifier for device passports |
 
 ### Supabase
 
@@ -33,7 +34,9 @@ PHONE_PEPPER=<openssl rand -hex 32>
 PII_ENCRYPTION_KEY=<openssl rand -hex 32>
 ```
 
-Supabase already provides `auth.uid()`, the `anon` / `authenticated` / `service_role` roles, and phone OTP. The `DO $$ ... $$` guards in `0001` and `0005` detect that and skip creating their own.
+4. Authentication → Providers → enable **Anonymous Sign-Ins** for the current device-first flow.
+
+Supabase already provides `auth.uid()`, the `anon` / `authenticated` / `service_role` roles, and phone OTP. The `DO $$ ... $$` guards in `0001` and `0005` detect that and skip creating their own. The app currently uses an anonymous Auth identity per browser; phone OTP can replace that identity when account recovery is added.
 
 ### Self-hosted / psql
 
