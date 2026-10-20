@@ -48,6 +48,7 @@ export async function fetchCloudPassport(): Promise<Passport | null> {
   if (!response.ok) throw new Error("Passport fetch failed");
 
   const data = (await response.json()) as {
+    checkins: Array<Passport["answers"] & { created_at: string }>;
     passport_code: string;
     created_at: string;
     readings: Array<{
@@ -63,7 +64,7 @@ export async function fetchCloudPassport(): Promise<Passport | null> {
   return {
     id: data.passport_code,
     createdAt: data.created_at,
-    answers: {
+    answers: data.checkins?.sort((a,b) => b.created_at.localeCompare(a.created_at))[0] ?? {
       sleep: "good",
       sodium: "good",
       stress: "good",
@@ -87,3 +88,4 @@ export function isCloudPersistenceConfigured(): boolean {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 }
+

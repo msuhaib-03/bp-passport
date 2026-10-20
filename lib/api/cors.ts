@@ -9,7 +9,7 @@ export function corsHeaders(): HeadersInit {
   return {
     ...(origin ? { "Access-Control-Allow-Origin": origin } : {}),
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     Vary: "Origin",
   };
 }
@@ -25,3 +25,4 @@ export function withCors(response: NextResponse): NextResponse {
 export function corsOptions(): NextResponse {
   return withCors(new NextResponse(null, { status: 204 }));
 }
+

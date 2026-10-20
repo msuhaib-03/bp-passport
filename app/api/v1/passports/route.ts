@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
   const patient = await client
     .from("patients")
-    .select("id, passport_code, created_at, readings(*)")
+    .select("id, passport_code, created_at, readings(*), checkins(sleep,sodium,stress,stimulants,activity,created_at)")
     .eq("auth_user_id", user.data.user.id)
     .maybeSingle();
   if (patient.error) return errorResponse("Unable to read passport", 500);
@@ -92,57 +92,21 @@ export async function POST(request: Request) {
     campaignId = campaign.data?.id ?? null;
   }
 
-  const existing = await client
-    .from("patients")
-    .select("id, passport_code, created_at")
-    .eq("auth_user_id", user.data.user.id)
-    .maybeSingle();
-  if (existing.error) return errorResponse("Unable to read patient", 500);
-
-  let patientId = existing.data?.id;
-  if (!patientId) {
-    const created = await client
-      .from("patients")
-      .insert({
-        auth_user_id: user.data.user.id,
-        passport_code: input.passportCode,
-        campaign_id: campaignId,
-        registered_at: input.createdAt,
-      })
-      .select("id, passport_code, created_at")
-      .single();
-    if (created.error) return errorResponse("Unable to create patient", 500);
-    patientId = created.data.id;
+  const result = await client.rpc("create_passport", {
+    p_code: input.passportCode,
+    p_created: input.createdAt,
+    p_campaign: campaignId,
+    p_answers: input.answers,
+    p_reading: input.reading,
+    p_score: calculateHeartScore(input.answers, input.reading).score,
+  });
+  if (result.error) {
+    return errorResponse("Unable to save passport", result.error.code === "23505" ? 409 : 500);
   }
-
-  if (input.reading && !existing.data) {
-    const score = calculateHeartScore(input.answers, input.reading).score;
-    const checkin = await client.from("checkins").insert({
-      patient_id: patientId,
-      campaign_id: campaignId,
-      systolic: input.reading.systolic,
-      diastolic: input.reading.diastolic,
-      sleep: input.answers.sleep,
-      sodium: input.answers.sodium,
-      stress: input.answers.stress,
-      stimulants: input.answers.stimulants,
-      activity: input.answers.activity,
-      heart_score: score,
-      score_version: "v1-provisional",
-    });
-    if (checkin.error) return errorResponse("Unable to save audit", 500);
-
-    const longitudinal = await client.from("readings").insert({
-      patient_id: patientId,
-      systolic: input.reading.systolic,
-      diastolic: input.reading.diastolic,
-      logged_at: input.reading.at ?? input.createdAt,
-    });
-    if (longitudinal.error) return errorResponse("Unable to save reading", 500);
-  }
-
+  const saved = result.data?.[0];
+  if (!saved) return errorResponse("Unable to save passport", 500);
   return withCors(NextResponse.json({
-    patientId,
-    passportCode: existing.data?.passport_code ?? input.passportCode,
-  }, { status: existing.data ? 200 : 201 }));
+    patientId: saved.patient_id,
+    passportCode: saved.passport_code,
+  }, { status: saved.created ? 201 : 200 }));
 }
