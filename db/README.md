@@ -19,6 +19,9 @@ They are ordered and idempotent — safe to re-run.
 | `0005_rls.sql` | Roles, grants, every RLS policy |
 | `0006_views.sql` | `patient_bp_summary()`, `research.*` |
 | `0007_passport_code.sql` | Public `PE-XXXX` identifier for device passports |
+| `0008_backend.sql` | Atomic onboarding, constrained clinician registration, secure share opening |
+| `0009_product_completion.sql` | Consent-gated idempotent sync, reading retries, share-list RPCs |
+| `0010_admin_workflow.sql` | Service-role-only clinician review with append-only audit events |
 
 ### Supabase
 
@@ -32,11 +35,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 SUPABASE_SERVICE_ROLE_KEY=<service role key>   # server only — never NEXT_PUBLIC_
 PHONE_PEPPER=<openssl rand -hex 32>
 PII_ENCRYPTION_KEY=<openssl rand -hex 32>
+SHARE_TOKEN_PEPPER=<at least 32 random characters>
+ADMIN_TOKEN=<at least 32 random characters>
 ```
 
-4. Authentication → Providers → enable **Anonymous Sign-Ins** for the current device-first flow.
+4. Authentication → Providers → enable **Anonymous Sign-Ins** and **Email**.
+5. Add both deployed locale account URLs (`/en/account` and `/ur/account`) to Authentication → URL Configuration → Redirect URLs.
 
-Supabase already provides `auth.uid()`, the `anon` / `authenticated` / `service_role` roles, and phone OTP. The `DO $$ ... $$` guards in `0001` and `0005` detect that and skip creating their own. The app currently uses an anonymous Auth identity per browser; phone OTP can replace that identity when account recovery is added.
+Supabase already provides `auth.uid()` and the `anon` / `authenticated` / `service_role` roles. The `DO $$ ... $$` guards detect these and avoid replacing them. The app begins with an anonymous browser identity and can upgrade it to a recoverable email/password account without moving the patient record.
 
 ### Self-hosted / psql
 
@@ -70,6 +76,7 @@ If a route handler forgets a `where patient_id = …`, the database still return
 Two policy details that are easy to get wrong and are tested:
 
 - **`WITH CHECK` on the patient `UPDATE` policy.** Without it, a patient can set `auth_user_id` to someone else's — account takeover in one statement.
+- **Consent-gated clinical inserts.** `checkins` and `readings` require current `essential` consent even if a caller bypasses the application API.
 - **Clinicians have no `INSERT` or `UPDATE` policy anywhere.** Read-only is structural, not conventional. A GP can never alter a patient's record, which is what makes the record usable as evidence by both parties.
 
 ### Sharing is patient-controlled and zero-knowledge

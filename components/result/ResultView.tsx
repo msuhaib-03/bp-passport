@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowRight, RotateCcw, ShieldCheck } from "lucide-react";
 
@@ -42,22 +42,25 @@ export function ResultView() {
   >({ status: "loading" });
 
   useEffect(() => {
-    const draft = readDraft();
-    const answers = draft?.answers as LifestyleAnswers | undefined;
-    const complete =
-      answers &&
-      (["sleep", "sodium", "stress", "stimulants", "activity"] as const).every(
-        (k) => answers[k],
-      );
+    const timer = window.setTimeout(() => {
+      const draft = readDraft();
+      const answers = draft?.answers as LifestyleAnswers | undefined;
+      const complete =
+        answers &&
+        (["sleep", "sodium", "stress", "stimulants", "activity"] as const).every(
+          (k) => answers[k],
+        );
 
-    if (!draft || !complete) {
-      setState({ status: "empty" });
-      return;
-    }
-    setState({
-      status: "ready",
-      result: calculateHeartScore(answers, draft.reading ?? null),
-    });
+      if (!draft || !complete) {
+        setState({ status: "empty" });
+        return;
+      }
+      setState({
+        status: "ready",
+        result: calculateHeartScore(answers, draft.reading ?? null),
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // Deep-linking here without completing the audit is a dead end, so send the

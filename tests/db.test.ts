@@ -566,6 +566,153 @@ describe("clinician summary", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+describe("reliable sync and patient-controlled sharing", () => {
+  const PATIENT_AUTH = "77777777-7777-4777-8777-777777777777";
+  const CLINICIAN_AUTH = "88888888-8888-4888-8888-888888888888";
+  const AUDIT_EVENT = "99999999-9999-4999-8999-999999999999";
+  const READING_EVENT = "12121212-1212-4121-8121-121212121212";
+  let patientId: string;
+
+  it("refuses clinical persistence until essential storage consent exists", async () => {
+    const withoutConsent = "67676767-6767-4676-8676-676767676767";
+    await asOwner();
+    const patient = await db.query<{ id: string }>(
+      "insert into patients (auth_user_id, passport_code) values ($1, 'PE-NCNS') returning id",
+      [withoutConsent],
+    );
+    await actAs(withoutConsent);
+    await expect(
+      db.query(
+        "insert into readings (patient_id, systolic, diastolic) values ($1, 130, 85)",
+        [patient.rows[0]!.id],
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db.query(
+        `select record_reading(
+          '34343434-3434-4343-8343-343434343434', 130::smallint, 85::smallint,
+          now(), 'random'::reading_time, null, null, null
+        )`,
+      ),
+    ).rejects.toThrow(/Storage consent required/);
+  });
+
+  it("makes passport and reading retries idempotent", async () => {
+    await actAs(PATIENT_AUTH);
+    const sql = `select * from sync_passport(
+      'PE-TST2', '2026-10-20T10:00:00Z'::timestamptz, null::uuid,
+      '{"sleep":"good","sodium":"fair","stress":"good","stimulants":"fair","activity":"good"}'::jsonb,
+      '{"systolic":132,"diastolic":86,"at":"2026-10-20T10:00:00Z","takenAtTime":"morning"}'::jsonb,
+      82::smallint, 'good'::lifestyle_level, $1::uuid,
+      true, 'v1', 'en'
+    )`;
+    const first = await db.query<{ patient_id: string; created: boolean }>(sql, [AUDIT_EVENT]);
+    const retry = await db.query<{ patient_id: string; created: boolean }>(sql, [AUDIT_EVENT]);
+    patientId = first.rows[0]!.patient_id;
+
+    expect(first.rows[0]!.created).toBe(true);
+    expect(retry.rows[0]!.created).toBe(false);
+    expect(retry.rows[0]!.patient_id).toBe(patientId);
+
+    const firstReading = await db.query<{ id: string }>(
+      `select record_reading(
+        $1::uuid, 128::smallint, 82::smallint,
+        '2026-10-21T07:00:00Z'::timestamptz, 'morning'::reading_time,
+        true, true, true
+      ) as id`,
+      [READING_EVENT],
+    );
+    const retriedReading = await db.query<{ id: string }>(
+      `select record_reading(
+        $1::uuid, 128::smallint, 82::smallint,
+        '2026-10-21T07:00:00Z'::timestamptz, 'morning'::reading_time,
+        true, true, true
+      ) as id`,
+      [READING_EVENT],
+    );
+    expect(retriedReading.rows[0]!.id).toBe(firstReading.rows[0]!.id);
+
+    const counts = await db.query<{ checkins: string; readings: string }>(
+      `select
+        (select count(*) from checkins where patient_id = $1) as checkins,
+        (select count(*) from readings where patient_id = $1) as readings`,
+      [patientId],
+    );
+    expect(Number(counts.rows[0]!.checkins)).toBe(1);
+    expect(Number(counts.rows[0]!.readings)).toBe(2);
+  });
+
+  it("resolves a verified clinician without exposing the clinician registry", async () => {
+    await asOwner();
+    await db.query(
+      `insert into clinicians
+        (auth_user_id, pmdc_number, name_enc, clinic_name, city, status, verified_at)
+       values ($1, 'PMDC-NEW01', '\\x00'::bytea, 'North Clinic', 'Islamabad',
+               'verified', now())`,
+      [CLINICIAN_AUTH],
+    );
+
+    await actAs(PATIENT_AUTH);
+    const share = await db.query<{ share_id: string; pmdc_number: string }>(
+      `select * from create_patient_share(
+        repeat('d', 64), 'pmdc-new01', now() + interval '7 days'
+      )`,
+    );
+    expect(share.rows[0]!.pmdc_number).toBe("PMDC-NEW01");
+
+    const patientList = await db.query<{ share_id: string }>("select share_id from patient_share_list()");
+    expect(patientList.rows.map((row) => row.share_id)).toContain(share.rows[0]!.share_id);
+
+    await actAs(CLINICIAN_AUTH);
+    const clinicianList = await db.query<{ patient_id: string }>(
+      "select patient_id from clinician_patient_share_list()",
+    );
+    expect(clinicianList.rows).toEqual([{ patient_id: patientId }]);
+
+    const opened = await db.query<{ patient_id: string }>(
+      "select patient_id from open_patient_share_by_patient($1)",
+      [patientId],
+    );
+    expect(opened.rows).toEqual([{ patient_id: patientId }]);
+
+    const readings = await db.query<{ n: string }>("select count(*) as n from readings");
+    expect(Number(readings.rows[0]!.n)).toBe(2);
+  });
+
+  it("restricts clinician approval to the service role and writes an audit event", async () => {
+    await asOwner();
+    const pending = await db.query<{ id: string }>(
+      `insert into clinicians
+        (auth_user_id, pmdc_number, name_enc, clinic_name, city, status)
+       values ('56565656-5656-4565-8565-565656565656', 'PMDC-REVIEW',
+               '\\x00'::bytea, 'Review Clinic', 'Lahore', 'pending')
+       returning id`,
+    );
+
+    await actAs(PATIENT_AUTH);
+    await expect(
+      db.query("select * from review_clinician($1, 'verified')", [pending.rows[0]!.id]),
+    ).rejects.toThrow();
+
+    await asOwner();
+    await db.exec("set role service_role");
+    const reviewed = await db.query<{ status: string; verified_at: string | null }>(
+      "select status, verified_at from review_clinician($1, 'verified')",
+      [pending.rows[0]!.id],
+    );
+    expect(reviewed.rows[0]!.status).toBe("verified");
+    expect(reviewed.rows[0]!.verified_at).not.toBeNull();
+
+    await asOwner();
+    const audit = await db.query<{ n: string }>(
+      `select count(*) as n from audit_log
+        where action = 'clinician.verified' and resource_id = $1`,
+      [pending.rows[0]!.id],
+    );
+    expect(Number(audit.rows[0]!.n)).toBe(1);
+  });
+});
+
 describe("research views protect the dataset", () => {
   it("bands systolic values to 5 mmHg", async () => {
     await asOwner();

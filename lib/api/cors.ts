@@ -8,7 +8,7 @@ export function corsHeaders(): HeadersInit {
   const origin = allowedOrigin();
   return {
     ...(origin ? { "Access-Control-Allow-Origin": origin } : {}),
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Admin-Token",
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     Vary: "Origin",
   };

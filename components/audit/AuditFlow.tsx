@@ -52,20 +52,25 @@ export function AuditFlow({ campaign }: { campaign?: string }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<LifestyleAnswers>>({});
   const [lastCheck, setLastCheck] = useState<Level | undefined>();
+  const [auditId, setAuditId] = useState(() => crypto.randomUUID());
 
   // Restore an interrupted attempt.
   useEffect(() => {
-    const draft = readDraft();
-    if (!draft) return;
-    setAnswers(draft.answers ?? {});
-    if (draft.lastCheck) setLastCheck(draft.lastCheck);
+    const timer = window.setTimeout(() => {
+      const draft = readDraft();
+      if (!draft || draft.completedAt) return;
+      setAuditId((current) => draft.auditId || current);
+      setAnswers(draft.answers ?? {});
+      if (draft.lastCheck) setLastCheck(draft.lastCheck);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const persist = useCallback(
     (next: Partial<LifestyleAnswers>, check?: Level) => {
-      writeDraft({ answers: next, lastCheck: check ?? lastCheck, campaign });
+      writeDraft({ auditId, answers: next, lastCheck: check ?? lastCheck, campaign });
     },
-    [campaign, lastCheck],
+    [auditId, campaign, lastCheck],
   );
 
   const selectLifestyle = (factor: LifestyleStep, level: Level) => {
@@ -87,7 +92,14 @@ export function AuditFlow({ campaign }: { campaign?: string }) {
     // Hand off through sessionStorage rather than the URL: a blood-pressure
     // reading in a query string ends up in browser history, in server logs and
     // in any analytics that records the path. Health data does not belong there.
-    writeDraft({ answers: complete, lastCheck, reading, campaign });
+    writeDraft({
+      auditId,
+      answers: complete,
+      lastCheck,
+      reading,
+      campaign,
+      completedAt: new Date().toISOString(),
+    });
     router.push("/results");
   };
 

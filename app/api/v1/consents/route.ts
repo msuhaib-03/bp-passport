@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { patientContext, json } from "@/lib/api/context";
 export { corsOptions as OPTIONS } from "@/lib/api/cors";
-const input = z.object({ scope: z.enum(["storage", "research", "marketing", "clinician_sharing"]), granted: z.boolean(), policyVersion: z.string().min(1).max(64), locale: z.enum(["en", "ur"]) }).strict();
+const input = z.object({ scope: z.enum(["essential", "research", "reminders"]), granted: z.boolean(), policyVersion: z.string().min(1).max(64), locale: z.enum(["en", "ur"]) }).strict();
 export async function GET(request: Request) {
   const ctx = await patientContext(request); if (ctx.error) return ctx.error;
   const result = await ctx.client.from("consents").select("id,scope,granted,policy_version,locale,recorded_at").eq("patient_id",ctx.patientId).order("recorded_at",{ascending:false}).limit(200);

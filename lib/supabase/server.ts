@@ -16,6 +16,18 @@ export function createAuthenticatedServerClient(
   });
 }
 
+/** Server-only client for reviewed administrative workflows. */
+export function createServiceServerClient(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) return null;
+
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export function bearerToken(request: Request): string | null {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;

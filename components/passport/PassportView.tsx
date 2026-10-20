@@ -1,28 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Flame, Plus } from "lucide-react";
+import { Cloud, Flame, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { BpEntry } from "@/components/audit/BpEntry";
+import { PrivacyControls } from "@/components/passport/PrivacyControls";
+import { SharePanel } from "@/components/passport/SharePanel";
 import { Button } from "@/components/ui/Button";
 import { LogoMark } from "@/components/brand/Logo";
 import { Link } from "@/lib/i18n/navigation";
 import {
   appendReading,
+  applyCompletedAudit,
   createPassport,
   currentStreak,
+  mergePassports,
   readDraft,
   readPassport,
+  savePassport,
   type Passport,
 } from "@/lib/storage";
 import {
   fetchCloudPassport,
   isCloudPersistenceConfigured,
-  syncNewPassport,
+  syncMissingReadings,
+  syncPassport,
   syncReading,
 } from "@/lib/supabase/persistence";
-import { summariseSeries, type BpReading } from "@/lib/clinical/bp-classification";
+import { fetchConsents, recordConsent } from "@/lib/supabase/patient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { classify, summariseSeries, type BpReading } from "@/lib/clinical/bp-classification";
 import { CATEGORY_VISUAL } from "@/lib/clinical/presentation";
 import type { LifestyleAnswers } from "@/lib/clinical/heart-score";
 
@@ -53,44 +61,99 @@ export function PassportView() {
   const [passport, setPassport] = useState<Passport | null>(null);
   const [logging, setLogging] = useState(false);
   const [ready, setReady] = useState(false);
-  const [cloudState, setCloudState] = useState<"connected" | "offline" | "syncing">("syncing");
+  const [cloudState, setCloudState] = useState<"connected" | "offline" | "syncing" | "consent" | "paused">("syncing");
+  const [syncError, setSyncError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const existing = readPassport();
+      let localPassport = readPassport();
+      const draft = readDraft();
+      const answers = draft?.answers as LifestyleAnswers | undefined;
+      const complete = answers && (["sleep", "sodium", "stress", "stimulants", "activity"] as const)
+        .every((key) => answers[key]);
+      if (draft && complete && draft.completedAt) {
+        if (localPassport) {
+          const applied = applyCompletedAudit(localPassport, draft);
+          localPassport = applied.passport;
+        } else {
+          localPassport = createPassport({
+            answers,
+            reading: draft.reading ?? null,
+            campaign: draft.campaign,
+            lastCheck: draft.lastCheck,
+            auditId: draft.auditId,
+            createdAt: draft.completedAt,
+          });
+        }
+      }
+      if (!cancelled) setPassport(localPassport);
+
+      if (!isCloudPersistenceConfigured()) {
+        if (!cancelled) {
+          setCloudState("offline");
+          setReady(true);
+        }
+        return;
+      }
+
       try {
         const cloud = await fetchCloudPassport();
         if (cancelled) return;
+        const session = await getSupabaseBrowserClient()?.auth.getSession();
+        const activeCloudUserId = session?.data.session?.user.id;
         if (cloud) {
-          setPassport(cloud);
-          localStorage.setItem("bpp.passport.v1", JSON.stringify(cloud));
+          // A different passport code may belong to another person who used
+          // this browser. Never merge two identities merely because they share
+          // a device; the signed-in cloud record wins in that case.
+          const active = localPassport?.id === cloud.id
+            ? mergePassports(cloud, localPassport)
+            : cloud;
+          savePassport(active);
+          setPassport(active);
+
+          const consents = await fetchConsents();
+          const policyVersion = process.env.NEXT_PUBLIC_CONSENT_POLICY_VERSION || "v1";
+          const storageConsent = consents.find(
+            (record) => record.scope === "essential" && record.policy_version === policyVersion,
+          );
+          if (!storageConsent?.granted) {
+            setCloudState("paused");
+            return;
+          }
+
+          if (active.lastAuditId && active.lastAuditId !== cloud.lastAuditId) {
+            await syncPassport(active);
+          }
+          await syncMissingReadings(active, cloud);
+          const refreshed = await fetchCloudPassport();
+          if (refreshed) {
+            const merged = mergePassports(refreshed, active);
+            setPassport(merged);
+          }
           setCloudState("connected");
-          setReady(true);
           return;
         }
 
-        const draft = readDraft();
-        const answers = draft?.answers as LifestyleAnswers | undefined;
-        if (answers) {
-          const created = createPassport({
-            answers,
-            reading: draft?.reading ?? null,
-            campaign: draft?.campaign,
-          });
-          setPassport(created);
-          await syncNewPassport(created);
+        if (
+          localPassport?.cloudOwnerId
+          && activeCloudUserId
+          && localPassport.cloudOwnerId !== activeCloudUserId
+        ) {
+          setPassport(null);
           setCloudState("connected");
-        } else if (existing) {
-          setPassport(existing);
-          await syncNewPassport(existing);
-          setCloudState("connected");
+          return;
+        }
+
+        if (localPassport) {
+          setCloudState("consent");
         } else {
           setCloudState("connected");
         }
-      } catch {
-        if (existing) setPassport(existing);
-        setCloudState(isCloudPersistenceConfigured() ? "offline" : "offline");
+      } catch (caught) {
+        if (localPassport) setPassport(localPassport);
+        setSyncError(caught instanceof Error ? caught.message : "Cloud connection failed.");
+        setCloudState("offline");
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -101,15 +164,37 @@ export function PassportView() {
     };
   }, []);
 
+  const connectCloud = useCallback(async (recordStorageConsent = true) => {
+    if (!passport) return;
+    setCloudState("syncing");
+    setSyncError("");
+    try {
+      if (passport.lastAuditId) await syncPassport(passport, recordStorageConsent);
+      else if (recordStorageConsent) {
+        await recordConsent("essential", true, document.documentElement.lang === "ur" ? "ur" : "en");
+      }
+      await syncMissingReadings(passport, null);
+      const cloud = await fetchCloudPassport();
+      if (cloud) setPassport(mergePassports(cloud, passport));
+      setCloudState("connected");
+    } catch (caught) {
+      setSyncError(caught instanceof Error ? caught.message : "Cloud sync failed.");
+      setCloudState("offline");
+    }
+  }, [passport]);
+
   const handleLog = (reading: BpReading | null) => {
     setLogging(false);
     if (!reading) return;
     const updated = appendReading({ ...reading, at: new Date().toISOString() });
     if (updated) {
       setPassport(updated);
-      void syncReading(updated.readings[updated.readings.length - 1]!).catch(() => {
-        // Keep the local reading when the network or Supabase is unavailable.
-      });
+      if (cloudState === "connected") {
+        void syncReading(updated.readings[updated.readings.length - 1]!).catch((caught) => {
+          setSyncError(caught instanceof Error ? caught.message : "Reading sync failed.");
+          setCloudState("offline");
+        });
+      }
     }
   };
 
@@ -170,11 +255,35 @@ export function PassportView() {
       </section>
 
       <p className="mt-3 text-center text-sm text-ink-500" role="status">
-        {cloudState === "connected" ? "Cloud backup connected" : cloudState === "syncing" ? "Connecting to cloud backup..." : "Offline mode: saved on this device"}
+        {cloudStatus(cloudState)}
       </p>
       <Link href="/account" className="mt-2 block text-center text-sm font-semibold text-cyan-600">
         Sign in or manage account
       </Link>
+
+      {(cloudState === "consent" || cloudState === "paused") && (
+        <section className="card mt-5 p-6">
+          <div className="flex gap-3">
+            <ShieldCheck size={22} className="mt-0.5 shrink-0 text-cyan-600" aria-hidden />
+            <div>
+              <h2 className="text-lg font-bold text-ink-900">Keep a secure cloud copy?</h2>
+              <p className="mt-2 text-sm leading-relaxed text-ink-600">
+                With your permission, BP Passport will store this passport and future readings in your protected account. You can pause future uploads at any time. Research and reminder consent remain separate and optional.
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={() => void connectCloud(true)} className="brand-gradient mt-5 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl px-5 font-bold text-white">
+            <Cloud size={19} aria-hidden /> Enable secure backup
+          </button>
+        </section>
+      )}
+
+      {cloudState === "offline" && isCloudPersistenceConfigured() && (
+        <button type="button" onClick={() => void connectCloud(true)} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border-strong bg-white px-4 text-sm font-bold text-ink-700">
+          <RefreshCw size={17} aria-hidden /> Retry cloud sync
+        </button>
+      )}
+      {syncError && <p className="mt-3 text-center text-xs text-[var(--color-risk-grade2-ink)]" role="alert">{syncError}</p>}
 
       {/* ── Log action, kept at the top where the habit forms ─────────── */}
       {!logging && (
@@ -236,6 +345,45 @@ export function PassportView() {
           Log again tomorrow. Two weeks of readings is what a doctor needs to act.
         </p>
       )}
+
+      {passport.readings.length > 0 && (
+        <section className="card mt-5 p-6">
+          <h2 className="text-lg font-bold text-ink-900">Recent readings</h2>
+          <ul className="mt-4 divide-y divide-border">
+            {[...passport.readings].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10).map((reading) => (
+              <li key={reading.clientId} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                <div>
+                  <p className="numeric text-lg font-bold text-ink-900">{reading.systolic}/{reading.diastolic}</p>
+                  <p className="mt-0.5 text-xs text-ink-500">{new Date(reading.at).toLocaleString()}</p>
+                </div>
+                <span className="rounded-full px-3 py-1 text-xs font-bold" style={{
+                  background: CATEGORY_VISUAL[classify(reading)].surface,
+                  color: CATEGORY_VISUAL[classify(reading)].onSurface,
+                }}>
+                  {t(`category.${classify(reading)}`)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <SharePanel enabled={cloudState === "connected"} />
+      <PrivacyControls
+        enabled={cloudState === "connected"}
+        onEssentialChange={(granted) => {
+          if (granted) void connectCloud(false);
+          else setCloudState("paused");
+        }}
+      />
     </div>
   );
+}
+
+function cloudStatus(state: "connected" | "offline" | "syncing" | "consent" | "paused") {
+  if (state === "connected") return "Cloud backup connected";
+  if (state === "syncing") return "Connecting to cloud backup…";
+  if (state === "consent") return "Saved on this device · cloud backup needs permission";
+  if (state === "paused") return "Cloud backup paused · saved on this device";
+  return "Offline mode: saved on this device";
 }

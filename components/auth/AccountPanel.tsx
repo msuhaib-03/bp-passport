@@ -1,130 +1,366 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { LogIn, LogOut, UserPlus } from "lucide-react";
+import { FormEvent, useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { KeyRound, LogIn, LogOut, Mail, Stethoscope, UserPlus } from "lucide-react";
 
+import { Link } from "@/lib/i18n/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-export function AccountPanel() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+type Mode = "login" | "register" | "recover" | "update-password";
+const AUTH_RETURN_KEY = "bpp.auth.return.v1";
+
+export function AccountPanel({ locale }: { locale: string }) {
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
+  const [configured] = useState(() => Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  ));
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const client = getSupabaseBrowserClient();
     if (!client) return;
-    void client.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
-    const { data } = client.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user?.email ?? null);
+    const returnPath = readReturnPath(locale);
+
+    void client.auth.getSession().then(({ data }) => {
+      setUserEmail(data.session?.user.email ?? null);
+      setIsAnonymous(data.session?.user.is_anonymous ?? false);
+      setEmailConfirmed(Boolean(data.session?.user.email_confirmed_at));
+      if (returnPath && data.session?.user.email_confirmed_at && !data.session.user.is_anonymous) {
+        followReturnPath(returnPath);
+      }
+    });
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      setUserEmail(session?.user.email ?? null);
+      setIsAnonymous(session?.user.is_anonymous ?? false);
+      setEmailConfirmed(Boolean(session?.user.email_confirmed_at));
+      if (event === "PASSWORD_RECOVERY") setMode("update-password");
+      else if (event === "SIGNED_IN" && returnPath && session?.user.email_confirmed_at && !session.user.is_anonymous) {
+        followReturnPath(returnPath);
+      }
     });
     return () => data.subscription.unsubscribe();
-  }, []);
+  }, [locale]);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError("");
+    setMessage("");
+    setPassword("");
+    setConfirmPassword("");
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setMessage("");
+    setError("");
     const client = getSupabaseBrowserClient();
     if (!client) {
-      setMessage("Cloud accounts are not configured yet.");
+      setError("Cloud accounts are not configured on this deployment.");
       setBusy(false);
       return;
     }
 
-    const current = await client.auth.getUser();
-    const result = mode === "login"
-      ? await client.auth.signInWithPassword({ email, password })
-      : current.data.user?.is_anonymous
-        ? await client.auth.updateUser({ email, password })
-        : await client.auth.signUp({ email, password });
+    try {
+      const returnPath = readReturnPath(locale);
+      if (mode === "recover") {
+        const result = await client.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: accountReturnUrl(locale),
+        });
+        if (result.error) throw result.error;
+        setMessage("Check your email for a secure password-reset link.");
+        return;
+      }
 
-    if (result.error) {
-      setMessage(result.error.message);
-    } else if (mode === "register") {
-      setMessage("Account created. Check your email if confirmation is required, then use your passport.");
-    } else {
-      setMessage("You are signed in. Your passport can now follow you across devices.");
+      if (mode === "update-password") {
+        if (password !== confirmPassword) throw new Error("Passwords do not match.");
+        const result = await client.auth.updateUser({ password });
+        if (result.error) throw result.error;
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
+        if (returnPath) {
+          followReturnPath(returnPath);
+          return;
+        }
+        setMessage("Your password has been updated.");
+        return;
+      }
+
+      if (mode === "login") {
+        const result = await client.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (result.error) throw result.error;
+        setMessage("Signed in. Open your passport to merge and fetch your cloud record.");
+        return;
+      }
+
+      if (password !== confirmPassword) throw new Error("Passwords do not match.");
+      const current = await client.auth.getSession();
+      const redirectTo = accountReturnUrl(locale);
+      const result = current.data.session?.user.is_anonymous
+        ? await client.auth.updateUser(
+            { email: email.trim(), password },
+            { emailRedirectTo: redirectTo },
+          )
+        : await client.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { emailRedirectTo: redirectTo },
+          });
+      if (result.error) throw result.error;
+      const afterRegistration = await client.auth.getSession();
+      const registrationConfirmed = Boolean(
+        afterRegistration.data.session?.user.email_confirmed_at
+          && !afterRegistration.data.session.user.is_anonymous,
+      );
+      if (registrationConfirmed && returnPath) {
+        followReturnPath(returnPath);
+        return;
+      }
+      setMessage(
+        registrationConfirmed
+          ? "Account created. Your existing device passport stays linked to this account."
+          : "Account created. Check your email to confirm it, then sign in.",
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Account request failed.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function signOut() {
     const client = getSupabaseBrowserClient();
     if (!client) return;
-    await client.auth.signOut();
-    setMessage("Signed out. This device can still use offline mode.");
+    setBusy(true);
+    const result = await client.auth.signOut();
+    setBusy(false);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setMessage("Signed out. The local copy stays on this device but will not be attached to another account.");
   }
 
-  if (userEmail) {
+  async function resendConfirmation() {
+    const client = getSupabaseBrowserClient();
+    if (!client || !userEmail) return;
+    setBusy(true);
+    setError("");
+    const result = await client.auth.resend({
+      type: "signup",
+      email: userEmail,
+      options: { emailRedirectTo: accountReturnUrl(locale) },
+    });
+    setBusy(false);
+    if (result.error) setError(result.error.message);
+    else setMessage("A new confirmation email has been sent.");
+  }
+
+  if (!configured) {
+    return (
+      <section className="card p-6">
+        <p className="font-bold text-ink-900">Cloud accounts need setup</p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-600">
+          Add the public Supabase URL and publishable key to this deployment. The
+          health audit and on-device passport still work offline.
+        </p>
+      </section>
+    );
+  }
+
+  if (userEmail && !isAnonymous && !emailConfirmed && mode !== "update-password") {
+    return (
+      <section className="card p-6">
+        <p className="font-bold text-ink-900">Confirm your email address</p>
+        <p className="mt-2 break-all text-sm text-ink-600">We sent a confirmation link to {userEmail}. Confirm it before using account recovery or the clinician portal.</p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <button type="button" disabled={busy} onClick={resendConfirmation} className="brand-gradient min-h-14 rounded-xl px-5 font-bold text-white disabled:opacity-60">Resend email</button>
+          <button type="button" disabled={busy} onClick={signOut} className="min-h-14 rounded-xl border border-border-strong px-5 font-bold text-ink-700 disabled:opacity-60">Sign out</button>
+        </div>
+        {message && <p className="mt-4 text-sm text-ink-600" role="status">{message}</p>}
+        {error && <p className="mt-4 text-sm text-[var(--color-risk-grade2-ink)]" role="alert">{error}</p>}
+      </section>
+    );
+  }
+
+  if (userEmail && !isAnonymous && emailConfirmed && mode !== "update-password") {
     return (
       <section className="card p-6">
         <p className="text-sm font-semibold text-ink-500">Signed in</p>
-        <p className="mt-1 text-lg font-bold text-ink-900">{userEmail}</p>
-        <button
-          type="button"
-          onClick={signOut}
-          className="mt-5 inline-flex min-h-14 items-center gap-2 rounded-xl border border-border-strong px-5 font-semibold text-ink-700 hover:bg-ink-50"
-        >
-          <LogOut size={18} aria-hidden />
-          Sign out
-        </button>
+        <p className="mt-1 break-all text-lg font-bold text-ink-900">{userEmail}</p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-600">
+          Your passport can now be fetched on another device after you sign in there.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/passport"
+            className="brand-gradient inline-flex min-h-14 items-center justify-center rounded-xl px-5 font-bold text-white"
+          >
+            Open my passport
+          </Link>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={signOut}
+            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-border-strong px-5 font-semibold text-ink-700 hover:bg-ink-50 disabled:opacity-60"
+          >
+            <LogOut size={18} aria-hidden />
+            Sign out
+          </button>
+        </div>
+        <Link href="/portal" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600">
+          <Stethoscope size={17} aria-hidden />
+          Clinician portal
+        </Link>
+        {message && <p className="mt-4 text-sm text-ink-600" role="status">{message}</p>}
+        {error && <p className="mt-4 text-sm text-[var(--color-risk-grade2-ink)]" role="alert">{error}</p>}
       </section>
     );
   }
 
   return (
     <section className="card p-6">
-      <div className="flex gap-2 border-b border-border pb-3">
-        <button
-          type="button"
-          onClick={() => setMode("login")}
-          className={`min-h-12 flex-1 rounded-lg px-3 font-semibold ${mode === "login" ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-50"}`}
-        >
-          <LogIn size={17} className="me-2 inline" aria-hidden />
-          Sign in
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("register")}
-          className={`min-h-12 flex-1 rounded-lg px-3 font-semibold ${mode === "register" ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-50"}`}
-        >
-          <UserPlus size={17} className="me-2 inline" aria-hidden />
-          Register
-        </button>
-      </div>
+      {mode !== "update-password" && (
+        <div className="grid grid-cols-2 gap-2 border-b border-border pb-3">
+          <ModeButton active={mode === "login"} onClick={() => switchMode("login")} icon={LogIn}>
+            Sign in
+          </ModeButton>
+          <ModeButton active={mode === "register"} onClick={() => switchMode("register")} icon={UserPlus}>
+            Register
+          </ModeButton>
+        </div>
+      )}
+
       <form onSubmit={submit} className="mt-5 space-y-4">
-        <label className="block text-sm font-semibold text-ink-700">
-          Email address
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 min-h-14 w-full rounded-xl border border-border-strong bg-white px-4 text-base text-ink-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-          />
-        </label>
-        <label className="block text-sm font-semibold text-ink-700">
-          Password
-          <input
-            required
-            minLength={8}
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="mt-2 min-h-14 w-full rounded-xl border border-border-strong bg-white px-4 text-base text-ink-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-          />
-        </label>
+        {mode !== "update-password" && (
+          <label className="block text-sm font-semibold text-ink-700">
+            Email address
+            <input
+              required
+              autoComplete="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-2 min-h-14 w-full rounded-xl border border-border-strong bg-white px-4 text-base text-ink-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        )}
+
+        {mode !== "recover" && (
+          <label className="block text-sm font-semibold text-ink-700">
+            {mode === "update-password" ? "New password" : "Password"}
+            <input
+              required
+              minLength={8}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-2 min-h-14 w-full rounded-xl border border-border-strong bg-white px-4 text-base text-ink-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        )}
+
+        {(mode === "register" || mode === "update-password") && (
+          <label className="block text-sm font-semibold text-ink-700">
+            Confirm password
+            <input
+              required
+              minLength={8}
+              autoComplete="new-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className="mt-2 min-h-14 w-full rounded-xl border border-border-strong bg-white px-4 text-base text-ink-900 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        )}
+
         <button
           disabled={busy}
           className="brand-gradient min-h-14 w-full rounded-xl px-5 font-bold text-white disabled:opacity-60"
         >
-          {busy ? "Working..." : mode === "login" ? "Sign in to my passport" : "Create my account"}
+          {busy ? "Working…" : submitLabel(mode)}
         </button>
       </form>
+
+      {mode === "login" && (
+        <button type="button" onClick={() => switchMode("recover")} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600">
+          <KeyRound size={16} aria-hidden /> Forgot password?
+        </button>
+      )}
+      {mode === "recover" && (
+        <button type="button" onClick={() => switchMode("login")} className="mt-4 text-sm font-semibold text-cyan-600">
+          Back to sign in
+        </button>
+      )}
+
+      {mode === "register" && (
+        <p className="mt-4 flex gap-2 text-xs leading-relaxed text-ink-500">
+          <Mail size={16} className="mt-0.5 shrink-0" aria-hidden />
+          If you already made a passport anonymously on this device, registration
+          upgrades that same identity so its records stay attached.
+        </p>
+      )}
       {message && <p className="mt-4 text-sm leading-relaxed text-ink-600" role="status">{message}</p>}
+      {error && <p className="mt-4 text-sm leading-relaxed text-[var(--color-risk-grade2-ink)]" role="alert">{error}</p>}
     </section>
   );
+}
+
+function ModeButton({ active, onClick, icon: Icon, children }: {
+  active: boolean;
+  onClick: () => void;
+  icon: ComponentType<{ size?: number; className?: string; "aria-hidden"?: boolean }>;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-12 rounded-lg px-3 font-semibold ${active ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-50"}`}
+    >
+      <Icon size={17} className="me-2 inline" aria-hidden />
+      {children}
+    </button>
+  );
+}
+
+function submitLabel(mode: Mode) {
+  if (mode === "login") return "Sign in to my passport";
+  if (mode === "register") return "Create my account";
+  if (mode === "recover") return "Email me a reset link";
+  return "Update password";
+}
+
+function accountReturnUrl(locale: string) {
+  return new URL(`/${locale}/account`, window.location.origin).toString();
+}
+
+function readReturnPath(locale: string): string | null {
+  try {
+    const value = window.sessionStorage.getItem(AUTH_RETURN_KEY);
+    return value && new RegExp(`^/${locale}/portal/[A-Za-z0-9_-]{36,43}$`).test(value)
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function followReturnPath(path: string) {
+  try { window.sessionStorage.removeItem(AUTH_RETURN_KEY); } catch { /* storage may be blocked */ }
+  window.location.assign(path);
 }

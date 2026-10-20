@@ -1,64 +1,48 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { corsOptions, withCors } from "@/lib/api/cors";
+import { patientContext, json } from "@/lib/api/context";
+import { corsOptions } from "@/lib/api/cors";
 import { assertValidReading } from "@/lib/clinical/bp-classification";
-import { bearerToken, createAuthenticatedServerClient } from "@/lib/supabase/server";
 
 const readingInput = z.object({
+  clientId: z.string().uuid(),
   systolic: z.number().int(),
   diastolic: z.number().int(),
   at: z.string().datetime(),
+  takenAtTime: z.enum(["morning", "evening", "random"]).default("random"),
   tookMeds: z.boolean().optional(),
   lowSalt: z.boolean().optional(),
   walked: z.boolean().optional(),
-});
-
-function errorResponse(message: string, status: number) {
-  return withCors(NextResponse.json({ error: message }, { status }));
-}
+}).strict();
 
 export function OPTIONS() {
   return corsOptions();
 }
 
 export async function POST(request: Request) {
-  const token = bearerToken(request);
-  if (!token) return errorResponse("Authentication required", 401);
-
-  const client = createAuthenticatedServerClient(token);
-  if (!client) return errorResponse("Supabase is not configured", 503);
-
-  const user = await client.auth.getUser(token);
-  if (user.error || !user.data.user) return errorResponse("Invalid session", 401);
+  const ctx = await patientContext(request);
+  if (ctx.error) return ctx.error;
 
   const parsed = readingInput.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return errorResponse("Invalid reading payload", 400);
+  if (!parsed.success) return json({ error: "Invalid reading payload" }, 400);
 
   try {
     assertValidReading(parsed.data);
   } catch {
-    return errorResponse("Invalid blood-pressure reading", 400);
+    return json({ error: "Invalid blood-pressure reading" }, 400);
   }
 
-  const patient = await client
-    .from("patients")
-    .select("id")
-    .eq("auth_user_id", user.data.user.id)
-    .maybeSingle();
-  if (patient.error) return errorResponse("Unable to read patient", 500);
-  if (!patient.data) return errorResponse("Passport not found", 404);
-
-  const result = await client.from("readings").insert({
-    patient_id: patient.data.id,
-    systolic: parsed.data.systolic,
-    diastolic: parsed.data.diastolic,
-    took_meds: parsed.data.tookMeds ?? null,
-    low_salt: parsed.data.lowSalt ?? null,
-    walked: parsed.data.walked ?? null,
-    logged_at: parsed.data.at,
+  const result = await ctx.client.rpc("record_reading", {
+    p_event: parsed.data.clientId,
+    p_systolic: parsed.data.systolic,
+    p_diastolic: parsed.data.diastolic,
+    p_logged_at: parsed.data.at,
+    p_taken_at_time: parsed.data.takenAtTime,
+    p_took_meds: parsed.data.tookMeds ?? null,
+    p_low_salt: parsed.data.lowSalt ?? null,
+    p_walked: parsed.data.walked ?? null,
   });
-  if (result.error) return errorResponse("Unable to save reading", 500);
+  if (result.error || !result.data) return json({ error: "Unable to save reading" }, 500);
 
-  return withCors(NextResponse.json({ saved: true }, { status: 201 }));
+  return json({ saved: true, id: result.data }, 201);
 }

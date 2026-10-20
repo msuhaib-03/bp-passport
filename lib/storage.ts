@@ -1,11 +1,10 @@
 /**
  * Client-side persistence.
  *
- * MVP posture (Horizon 1): the browser is the system of record. No account, no
- * server round-trip, nothing to sign up for — which is what makes a 60-second
- * kiosk scan possible at all. Every function is written behind a narrow
- * interface so that swapping the implementation for Supabase in V1.0 touches
- * this file and nothing else.
+ * Local-first posture: a 60-second kiosk audit needs no account or round trip.
+ * When the user grants storage consent, the Supabase adapter merges this local
+ * record with its cloud copy using stable event IDs; browser storage remains
+ * the offline fallback.
  *
  * Two stores, deliberately:
  *   · sessionStorage — the in-progress audit. Abandoned attempts should not
@@ -23,17 +22,26 @@ const DRAFT_KEY = "bpp.audit.draft.v1";
 const PASSPORT_KEY = "bpp.passport.v1";
 
 export interface AuditDraft {
+  /** Stable client event ID used to make cloud retries idempotent. */
+  auditId?: string;
   answers: Partial<LifestyleAnswers>;
   lastCheck?: "good" | "fair" | "poor";
   reading?: BpReading | null;
   /** ?c= campaign code from the QR link, for attribution. */
   campaign?: string;
+  /** Set only after all seven audit steps have been completed. */
+  completedAt?: string;
   updatedAt: string;
 }
 
 export interface LoggedReading extends BpReading {
+  /** Stable client event ID. Older locally saved readings are upgraded on read. */
+  clientId: string;
+  /** Database identifier, present after a cloud fetch. */
+  serverId?: string;
   /** ISO timestamp. */
   at: string;
+  takenAtTime?: "morning" | "evening" | "random";
   tookMeds?: boolean;
   lowSalt?: boolean;
   walked?: boolean;
@@ -42,8 +50,15 @@ export interface LoggedReading extends BpReading {
 export interface Passport {
   id: string;
   createdAt: string;
+  /** Auth identity this local copy was last synchronized with. */
+  cloudOwnerId?: string;
   displayName?: string;
   answers: LifestyleAnswers;
+  lastCheck?: "good" | "fair" | "poor";
+  /** The most recent audit already applied to this passport. */
+  lastAuditId?: string;
+  /** Completion time used to resolve cross-device audit conflicts. */
+  lastAuditAt?: string;
   readings: LoggedReading[];
   campaign?: string;
 }
@@ -117,7 +132,19 @@ export function readPassport(): Passport | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Passport;
-    return Array.isArray(parsed.readings) ? parsed : null;
+    if (!Array.isArray(parsed.readings)) return null;
+
+    // Passport records created before cloud idempotency shipped have no event
+    // IDs. Upgrade them once on read so subsequent retries remain safe.
+    let changed = false;
+    const readings = parsed.readings.map((reading) => {
+      if (reading.clientId) return reading;
+      changed = true;
+      return { ...reading, clientId: crypto.randomUUID() };
+    });
+    const upgraded = { ...parsed, readings };
+    if (changed) safeSet(local(), PASSPORT_KEY, JSON.stringify(upgraded));
+    return upgraded;
   } catch {
     return null;
   }
@@ -128,26 +155,126 @@ export function createPassport(input: {
   reading?: BpReading | null;
   campaign?: string;
   displayName?: string;
+  lastCheck?: "good" | "fair" | "poor";
+  auditId?: string;
+  createdAt?: string;
 }): Passport {
-  const now = new Date().toISOString();
+  const now = input.createdAt ?? new Date().toISOString();
+  const auditId = input.auditId ?? crypto.randomUUID();
   const passport: Passport = {
     id: generatePassportId(),
     createdAt: now,
     displayName: input.displayName,
     answers: input.answers,
+    lastCheck: input.lastCheck,
+    lastAuditId: auditId,
+    lastAuditAt: now,
     campaign: input.campaign,
-    readings: input.reading ? [{ ...input.reading, at: now }] : [],
+    readings: input.reading
+      ? [{ ...input.reading, clientId: auditId, at: now, takenAtTime: "random" }]
+      : [],
   };
-  safeSet(local(), PASSPORT_KEY, JSON.stringify(passport));
+  savePassport(passport);
   return passport;
 }
 
-export function appendReading(reading: LoggedReading): Passport | null {
+export function savePassport(passport: Passport): boolean {
+  return safeSet(local(), PASSPORT_KEY, JSON.stringify(passport));
+}
+
+export function appendReading(
+  reading: Omit<LoggedReading, "clientId"> & { clientId?: string },
+): Passport | null {
   const passport = readPassport();
   if (!passport) return null;
-  const updated: Passport = { ...passport, readings: [...passport.readings, reading] };
-  safeSet(local(), PASSPORT_KEY, JSON.stringify(updated));
+  const nextReading: LoggedReading = {
+    ...reading,
+    clientId: reading.clientId ?? crypto.randomUUID(),
+  };
+  const updated: Passport = {
+    ...passport,
+    readings: [...passport.readings, nextReading],
+  };
+  savePassport(updated);
   return updated;
+}
+
+/**
+ * Apply a completed audit to an existing passport exactly once. This is what
+ * makes retaking the Heart Audit update the same longitudinal record instead of
+ * being ignored after the first passport has been created.
+ */
+export function applyCompletedAudit(
+  passport: Passport,
+  draft: AuditDraft,
+): { passport: Passport; applied: boolean } {
+  const answers = draft.answers as LifestyleAnswers;
+  if (!draft.auditId || !draft.completedAt || passport.lastAuditId === draft.auditId) {
+    return { passport, applied: false };
+  }
+
+  const readings = draft.reading
+    ? [
+        ...passport.readings.filter((reading) => reading.clientId !== draft.auditId),
+        {
+          ...draft.reading,
+          clientId: draft.auditId,
+          at: draft.completedAt,
+          takenAtTime: "random" as const,
+        },
+      ]
+    : passport.readings;
+
+  const updated: Passport = {
+    ...passport,
+    answers,
+    lastCheck: draft.lastCheck,
+    lastAuditId: draft.auditId,
+    lastAuditAt: draft.completedAt,
+    campaign: draft.campaign ?? passport.campaign,
+    readings,
+  };
+  savePassport(updated);
+  return { passport: updated, applied: true };
+}
+
+export function mergePassports(cloud: Passport, localPassport: Passport): Passport {
+  const readings = [...cloud.readings];
+  for (const localReading of localPassport.readings) {
+    const duplicate = readings.some(
+      (cloudReading) =>
+        cloudReading.clientId === localReading.clientId ||
+        (cloudReading.systolic === localReading.systolic &&
+          cloudReading.diastolic === localReading.diastolic &&
+          cloudReading.at === localReading.at),
+    );
+    if (!duplicate) readings.push(localReading);
+  }
+  readings.sort((a, b) => a.at.localeCompare(b.at));
+
+  const localAuditTime = Date.parse(localPassport.lastAuditAt ?? "");
+  const cloudAuditTime = Date.parse(cloud.lastAuditAt ?? "");
+  const localIsNewerAudit = Boolean(
+    localPassport.lastAuditId
+      && localPassport.lastAuditId !== cloud.lastAuditId
+      && Number.isFinite(localAuditTime)
+      && (!Number.isFinite(cloudAuditTime) || localAuditTime > cloudAuditTime),
+  );
+  const merged: Passport = {
+    ...cloud,
+    answers: localIsNewerAudit ? localPassport.answers : cloud.answers,
+    lastCheck: localIsNewerAudit ? localPassport.lastCheck : cloud.lastCheck,
+    lastAuditId: localIsNewerAudit
+      ? localPassport.lastAuditId
+      : cloud.lastAuditId ?? localPassport.lastAuditId,
+    lastAuditAt: localIsNewerAudit
+      ? localPassport.lastAuditAt
+      : cloud.lastAuditAt ?? localPassport.lastAuditAt,
+    campaign: localPassport.campaign ?? cloud.campaign,
+    readings,
+  };
+  savePassport(merged);
+  return merged;
 }
 
 /**

@@ -26,7 +26,7 @@ export default async function AccountPage({
           Sign in to keep your passport and readings available when you change phones or browsers.
         </p>
         <div className="mt-8">
-          <AccountPanel />
+          <AccountPanel locale={locale} />
         </div>
         <Link href="/passport" className="mt-6 inline-block text-sm font-semibold text-cyan-600">
           Back to my passport

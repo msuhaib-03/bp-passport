@@ -22,6 +22,8 @@ DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object T
 DO $$ BEGIN CREATE ROLE service_role NOLOGIN BYPASSRLS; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- campaigns — public read of active campaigns; nobody but a service role writes
@@ -108,7 +110,10 @@ CREATE POLICY checkins_clinician_read ON checkins
 DROP POLICY IF EXISTS checkins_self_insert ON checkins;
 CREATE POLICY checkins_self_insert ON checkins
   FOR INSERT TO authenticated
-  WITH CHECK (patient_id IN (SELECT id FROM patients WHERE auth_user_id = auth.uid()));
+  WITH CHECK (
+    patient_id IN (SELECT id FROM patients WHERE auth_user_id = auth.uid())
+    AND has_consent(patient_id, 'essential')
+  );
 
 -- No UPDATE: a screening event is a historical fact. Correcting a mistyped
 -- reading means recording a new checkin, not editing the past.
@@ -129,7 +134,10 @@ CREATE POLICY readings_self_read ON readings
 DROP POLICY IF EXISTS readings_self_insert ON readings;
 CREATE POLICY readings_self_insert ON readings
   FOR INSERT TO authenticated
-  WITH CHECK (patient_id IN (SELECT id FROM patients WHERE auth_user_id = auth.uid()));
+  WITH CHECK (
+    patient_id IN (SELECT id FROM patients WHERE auth_user_id = auth.uid())
+    AND has_consent(patient_id, 'essential')
+  );
 
 DROP POLICY IF EXISTS readings_self_delete ON readings;
 CREATE POLICY readings_self_delete ON readings

@@ -27,14 +27,14 @@ npm run dev          # http://localhost:3000 → redirects to /en
 ```
 
 ```bash
-npm test             # 106 tests
+npm test             # 116 tests
 npm run test:clinical # 68 — clinical logic, incl. all 243 lifestyle combinations
-npm run test:db      # 38 — migrations + RLS, against real Postgres via PGlite
-npm run check        # typecheck + full suite
+npm run test:db      # 42 — migrations + RLS, against real Postgres via PGlite
+npm run check        # lint + typecheck + full suite
 npm run build        # production build
 ```
 
-No environment variables are required to run the offline fallback. To enable cloud persistence, copy `.env.example` to `.env.local`, apply migrations `0001` through `0007`, and enable Supabase Anonymous Sign-Ins. The app then creates a Supabase Auth identity per browser and syncs completed audits and readings while retaining local storage as an offline fallback.
+No environment variables are required for the offline fallback. To enable connected features, copy `.env.example` to `.env.local`, apply migrations `0001` through `0010`, and enable Supabase Anonymous Sign-Ins plus Email authentication. The first cloud upload requires explicit storage consent; local storage remains the offline fallback.
 
 ## Connected deployment
 
@@ -66,6 +66,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-or-anon-key>
 WEB_ORIGIN=https://<vercel-web-host>
 NEXT_PUBLIC_CONSENT_POLICY_VERSION=v1
+PII_ENCRYPTION_KEY=<64-character-hex-key>
+SHARE_TOKEN_PEPPER=<at-least-32-random-characters>
+SUPABASE_SERVICE_ROLE_KEY=<server-only-service-role-key>
+ADMIN_TOKEN=<at-least-32-random-characters>
 ```
 
 `WEB_ORIGIN` is backend-only CORS configuration. Set it to the exact Vercel
@@ -73,20 +77,21 @@ origin, without a trailing slash. `NEXT_PUBLIC_API_URL` points the browser to
 Render. For a single combined deployment, leave `NEXT_PUBLIC_API_URL` and
 `WEB_ORIGIN` empty.
 
-The current patient routes use the user's Supabase bearer token and database
-RLS. `SUPABASE_SERVICE_ROLE_KEY` is intentionally not needed by them and must
-remain server-only for future admin and background operations.
+Patient and clinician record routes use the user's Supabase bearer token and
+database RLS. `SUPABASE_SERVICE_ROLE_KEY` is used only by the token-gated
+clinician review endpoint and must remain server-only.
 
-Before either deployment, apply migrations `0001` through `0007` and enable
-Supabase Authentication → Providers → Anonymous Sign-Ins.
+Before either deployment, apply migrations `0001` through `0010`, enable
+Supabase Authentication → Providers → Anonymous Sign-Ins and Email, and add the
+deployed `/en/account` and `/ur/account` URLs to the allowed redirect list.
 
 ### Current product scope
 
-The connected implementation covers the existing patient flow: audit, results,
-passport creation, and longitudinal reading submission. Phone login, clinician
-portal, admin dashboard, exports, and campaign management are not present as
-routes in this repository yet; they require additional screens, authorization
-rules, and API contracts rather than environment variables.
+The connected implementation covers email registration, sign-in, password
+recovery, anonymous-account upgrade, consent-gated passport synchronization,
+longitudinal readings, patient-controlled clinician sharing, a verified
+clinician portal, and a manual PMDC review queue at `/admin`. Research exports,
+campaign management, and phone OTP remain future work.
 
 Available API routes:
 
@@ -94,6 +99,15 @@ Available API routes:
 - `GET /api/v1/passports`
 - `POST /api/v1/passports`
 - `POST /api/v1/readings`
+- `GET|POST /api/v1/consents`
+- `GET /api/v1/passport/history`
+- `GET /api/v1/share`
+- `POST /api/v1/share/create`
+- `DELETE /api/v1/share/:id`
+- `GET|POST /api/v1/clinician/profile`
+- `GET /api/v1/clinician/patients`
+- `GET /api/v1/clinician/patients/:reference`
+- `GET|POST /api/v1/admin/clinicians`
 
 ---
 
@@ -105,7 +119,7 @@ Available API routes:
 | Styling | **Tailwind CSS v4** with a CSS-first design system | Tokens live in `app/globals.css`; the clinical palette is defined once |
 | i18n | **next-intl** (`en`, `ur`) with true RTL | Locale is a route segment; `dir` is set on `<html>`; layout uses logical properties throughout |
 | Clinical logic | Pure TypeScript in `lib/clinical/` | Zero dependencies, fully unit-tested, portable to a server or a worker unchanged |
-| Persistence | `sessionStorage` + `localStorage` behind `lib/storage.ts` | MVP works offline with no signup; swapping in Supabase touches one file |
+| Persistence | Local-first browser storage + Supabase Auth/PostgreSQL | The audit works without an account; consented records sync idempotently across devices |
 | Tests | **Vitest** | The clinical suite is the executable form of the PHL sign-off contract |
 
 Production audit is clean (`npm audit --omit=dev` → 0 vulnerabilities).
@@ -197,20 +211,30 @@ app/
     audit/              7-step Heart Audit
     results/            score, category, levers
     passport/           dashboard, logging, 14-day mean ± SD
+    account/            email registration, sign-in, recovery
+    portal/             clinician registration and shared records
+    admin/              token-gated PMDC review queue
+  api/v1/               authenticated patient, clinician, share, admin APIs
   manifest.ts           PWA manifest
   globals.css           design system tokens
 components/
   brand/Logo.tsx        inline SVG mark — paints with the first byte of HTML
   audit/                AuditFlow, BpEntry
   result/               ResultView, RiskScale, EmergencyCard
-  passport/             PassportView
+  passport/             PassportView, consent and sharing controls
+  auth/                 account lifecycle UI
+  clinician/            clinician portal and patient record
+  admin/                clinician review UI
   ui/                   Button, LocaleSwitch
 lib/
   clinical/             bp-classification · heart-score · triage · drap-guardrail · presentation
+  api/                  authentication context, CORS, encryption, token hashing
   i18n/                 routing · request · navigation
-  storage.ts            sessionStorage/localStorage behind a narrow interface
+  supabase/              browser/server clients and typed API adapters
+  storage.ts            local-first session/passport persistence and merge logic
 messages/               en.json · ur.json
 tests/clinical.test.ts  68 tests — the clinical contract, executable
+tests/db.test.ts        migrations, RLS, idempotency, sharing, admin audit
 proxy.ts                locale negotiation (Next 16 convention)
 ```
 
@@ -218,25 +242,26 @@ proxy.ts                locale negotiation (Next 16 convention)
 
 ## Data
 
-The MVP stores everything on the device. No account, no server round-trip — which is what makes a 60-second kiosk scan possible at all.
+The product is local-first. A 60-second kiosk audit still needs no account or server round-trip; connected backup is an explicit, recoverable choice.
 
 - **`sessionStorage`** holds the in-progress audit, so an abandoned attempt does not linger on a shared kiosk device.
 - **`localStorage`** holds the saved Passport, and only after an explicit user action.
+- **Supabase PostgreSQL** receives audits and readings only after the user grants the current `essential` storage policy. Client event IDs make retries idempotent.
 - The BP reading is **never** put in a URL. A query string ends up in browser history, server logs and analytics; health data does not belong there.
 - Passport IDs (`PE-XXXX`) exclude `I`, `O`, `0` and `1` — indistinguishable when read aloud at a clinic desk.
 
-### The server-side schema — built, not yet wired
+### The server-side schema — wired and enforced
 
 `db/migrations/` holds the full PostgreSQL schema: nine tables, row-level security forced on every one, an append-only audit log, a consent ledger, and a consented + k-anonymised research schema. See **[db/README.md](db/README.md)**.
 
-It is verified rather than asserted: `npm run test:db` applies the migrations to a real Postgres 18 (PGlite/WASM) and proves the behaviour — that one patient cannot read another's readings, that a clinician's access dies the instant a share is revoked or expires, that an unverified PMDC registration gets nothing, that the audit log survives `DELETE`, and that research cells below k = 5 are suppressed.
+It is verified rather than asserted: `npm run test:db` applies the migrations to a real Postgres 18 (PGlite/WASM) and proves the behaviour — including consent-gated writes, retry idempotency, patient isolation, clinician revocation/expiry, audited PMDC review, immutable audit events, and suppression of research cells below k = 5.
 
 Two corrections carried forward from the architecture documents:
 
 - **Phone numbers are not hashed with bare SHA-256.** A Pakistani mobile has roughly 10⁹ possible values, so an unpeppered digest is exhaustible in seconds and is not anonymisation. HMAC-SHA256 with a server-side pepper, computed in the app so the database never holds the secret.
 - **Consent is a first-class append-only table.** The documents described a pharma-affiliated research dataset built from patient readings with no consent model at all. `has_consent()` returns false when no record exists — absence of consent is refusal, never assent.
 
-Switching the app over touches one file, `lib/storage.ts`, because everything is behind that interface.
+The browser keeps working offline and merges its stable event IDs with the authenticated cloud record when connectivity returns.
 
 ---
 
@@ -244,8 +269,9 @@ Switching the app over touches one file, `lib/storage.ts`, because everything is
 
 | Horizon | Scope |
 |---|---|
-| **H1 — now** | Landing · Heart Audit · results · Passport dashboard · bilingual · offline-capable |
-| **H2** | Clinician Portal (`/portal`) with PMDC gate, share tokens, 14-day charts ± SD against ISH bands; phone OTP; Postgres + RLS |
+| **H1 — now** | Landing · Heart Audit · results · Passport · bilingual · offline-capable |
+| **H2 — now** | Email accounts · consented cloud sync · clinician portal · PMDC review · expiring/revocable shares · Postgres + RLS |
+| **H2 next** | Phone OTP · automated PMDC reconciliation · research export review workflow |
 | **H3** | Bluetooth cuff sync · diagnostic lab booking · corporate analytics |
 | **H4** | Multi-tenant SaaS · HL7 FHIR · regional expansion |
 
@@ -267,7 +293,7 @@ Numbers are never generated. The 14-day mean ± SD is computed in SQL and passed
 - [ ] **DRAP Class A written confirmation** — the classification inquiry, filed
 - [ ] Independent penetration test
 - [ ] Source citations attached to every epidemiological figure with year and study
-- [ ] Patient consent flow and data-ownership statement, written before any data leaves the device
+- [x] Patient consent flow and separate essential/research/reminder controls before cloud persistence
 
 ---
 
