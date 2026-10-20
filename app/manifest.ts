@@ -10,11 +10,11 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BP Passport — blood pressure, tracked",
-    short_name: "BP Passport",
+    name: "HeartLine — blood pressure, understood and tracked",
+    short_name: "HeartLine",
     description:
       "A free, bilingual blood-pressure check and longitudinal tracker for Pakistan. Sixty seconds, no download, no cost.",
-    start_url: "/en",
+    start_url: "/en/care",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

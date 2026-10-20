@@ -1,8 +1,8 @@
-# BP Passport
+# HeartLine · BP Passport
 
-A free, bilingual, QR-first blood-pressure screening and longitudinal tracking platform for Pakistan.
+A local-first heart-care companion built on the existing bilingual, QR-first BP Passport platform for Pakistan.
 
-Scan a QR code at a kiosk, complete a 60-second Heart Audit in English or Urdu, see what your reading means, and keep a record your doctor can actually act on. No download, no account, no cost.
+Start at `/en/care` for guided onboarding, a 10-question health check, the care dashboard, BP logging, prescribed-medicine reminders, reports, caregiver controls, clinician handoff, and the text/voice HeartLine assistant. The original audit, Passport, account, clinician, admin, consent, and Supabase workflows remain available.
 
 ---
 
@@ -27,7 +27,7 @@ npm run dev          # http://localhost:3000 → redirects to /en
 ```
 
 ```bash
-npm test             # 116 tests
+npm test             # 120 tests
 npm run test:clinical # 68 — clinical logic, incl. all 243 lifestyle combinations
 npm run test:db      # 42 — migrations + RLS, against real Postgres via PGlite
 npm run check        # lint + typecheck + full suite
@@ -35,6 +35,16 @@ npm run build        # production build
 ```
 
 No environment variables are required for the offline fallback. To enable connected features, copy `.env.example` to `.env.local`, apply migrations `0001` through `0010`, and enable Supabase Anonymous Sign-Ins plus Email authentication. The first cloud upload requires explicit storage consent; local storage remains the offline fallback.
+
+The HeartLine assistant also works without a model key through a deterministic, safety-filtered local coach. To enable generative replies, configure one provider on the server; emergency triage still runs first and generated output still passes through the DRAP guardrail:
+
+```dotenv
+GROQ_API_KEY=
+GROQ_MODEL=
+# or
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=
+```
 
 ## Connected deployment
 
@@ -96,6 +106,7 @@ campaign management, and phone OTP remain future work.
 Available API routes:
 
 - `GET /api/health`
+- `POST /api/v1/assistant`
 - `GET /api/v1/passports`
 - `POST /api/v1/passports`
 - `POST /api/v1/readings`

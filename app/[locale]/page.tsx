@@ -1,138 +1,84 @@
-import { Clock, HeartPulse, Lock, ShieldCheck, Stethoscope } from "lucide-react";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import Image from "next/image";
+import { ArrowRight, Bot, FileHeart, HeartPulse, Languages, Lock, ShieldCheck } from "lucide-react";
+import { setRequestLocale } from "next-intl/server";
 
-import { LogoLockup } from "@/components/brand/Logo";
-import { LocaleSwitch } from "@/components/ui/LocaleSwitch";
 import { Link } from "@/lib/i18n/navigation";
 
-/**
- * Campaign landing (SCR-01) — the screen a QR code opens.
- *
- * DESIGN INTENT
- * -------------
- * The single job here is to get a sceptical person from "what is this" to
- * "started" in under six seconds, standing in a pharmacy queue. So:
- *
- *  · The value proposition is a time promise, not a feature list. "60 seconds"
- *    is the only claim that overcomes the friction of starting.
- *  · The three reassurances answer the three unspoken objections in order:
- *    how long, who sees this, do I need equipment. The third matters most —
- *    most people scanning a poster do not have a cuff, and if they think they
- *    need one they leave.
- *  · The CTA is above the epidemiology. Statistics justify the product to a
- *    funder; they do not motivate a 29-year-old, and putting them first pushes
- *    the button below the fold.
- *  · "This is not a diagnosis" appears on the first screen, not buried in a
- *    footer. It is a DRAP Class A requirement and it also builds trust.
- */
-export default async function LandingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("landing");
-  const tb = await getTranslations("brand");
-
-  const reassurances = [
-    { icon: Clock, text: t("reassure.time") },
-    { icon: Lock, text: t("reassure.private") },
-    { icon: Stethoscope, text: t("reassure.noCuff") },
-  ];
-
-  const stats = [
-    { value: t("why.stat1Value"), label: t("why.stat1Label") },
-    { value: t("why.stat2Value"), label: t("why.stat2Label") },
-    { value: t("why.stat3Value"), label: t("why.stat3Label") },
-  ];
+  const copy = locale === "ur" ? {
+    eyebrow: "آپ کا روزمرہ دل کی صحت کا ساتھی",
+    title: "آپ کا دل۔ آپ کی صحت۔ اگلا واضح قدم۔",
+    subtitle: "ہارٹ لائن آپ کو اپنی صحت سمجھنے، بی پی پاسپورٹ محفوظ رکھنے اور اگلا قدم جاننے میں مدد دیتی ہے۔",
+    understand: "1۔ سمجھیں",
+    understandBody: "ایک مختصر صحت چیک۔",
+    guide: "2۔ رہنمائی",
+    guideBody: "ایک واضح اگلا قدم۔",
+    start: "اپنا صحت چیک شروع کریں",
+    ask: "پہلے ہارٹ لائن سے پوچھیں",
+    features: [
+      { icon: HeartPulse, title: "حقیقی ریڈنگز", body: "آپ کے موجودہ پاسپورٹ میں محفوظ۔" },
+      { icon: FileHeart, title: "کیئر رپورٹ", body: "حقیقی 14 دن کا خلاصہ۔" },
+      { icon: Lock, title: "اختیار آپ کا", body: "پہلے مقامی، منسلک ہونے پر کلاؤڈ۔" },
+    ],
+    disclaimer: "ہارٹ لائن تعلیم، ٹریکنگ اور ڈاکٹر کے ساتھ شیئرنگ میں مدد دیتی ہے۔ یہ تشخیص یا علاج تبدیل نہیں کرتی۔ شدید علامات میں ریسکیو 1122 پر کال کریں۔",
+  } : {
+    eyebrow: "Your everyday heart companion",
+    title: "Your heart. Your health. One clear next step.",
+    subtitle: "HeartLine helps you understand your health, keep your BP Passport, and know what comes next.",
+    understand: "1. Understand",
+    understandBody: "One short health check.",
+    guide: "2. Guide",
+    guideBody: "One clear next step.",
+    start: "Start your health check",
+    ask: "Ask HeartLine first",
+    features: [
+      { icon: HeartPulse, title: "Real readings", body: "Saved to your existing Passport." },
+      { icon: FileHeart, title: "Care report", body: "A real 14-day summary." },
+      { icon: Lock, title: "You control it", body: "Local first, cloud only when connected." },
+    ],
+    disclaimer: "HeartLine supports education, tracking, and clinician sharing. It does not diagnose or change treatment. For severe symptoms, call Rescue 1122.",
+  };
 
   return (
-    <main className="min-h-dvh bg-white">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 pt-5">
-        <LogoLockup size={38} />
-        <div className="flex items-center gap-3">
-          <Link href="/account" className="text-sm font-semibold text-ink-600 hover:text-cyan-600">
-            Account
-          </Link>
-          <LocaleSwitch />
-        </div>
-      </header>
-
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-3xl px-5 pt-10 pb-8">
-        <p className="inline-flex items-center gap-2 rounded-full bg-cyan-100 px-4 py-2 text-sm font-bold text-cyan-600">
-          <HeartPulse size={16} aria-hidden />
-          {t("eyebrow")}
-          <span className="text-cyan-600/60">·</span>
-          {tb("free")}
-        </p>
-
-        <h1 className="mt-6 text-4xl leading-[1.12] font-bold text-ink-900 sm:text-5xl">
-          {t("title")}
-        </h1>
-
-        <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-600">
-          {t("subtitle")}
-        </p>
-
-        {/* Primary action sits above everything explanatory. */}
-        <Link
-          href="/audit"
-          className="brand-gradient mt-8 inline-flex min-h-[4rem] w-full items-center justify-center rounded-2xl px-8 text-lg font-bold text-white shadow-[0_4px_20px_rgb(34_195_214/0.35)] transition-transform active:scale-[0.99] sm:w-auto"
-        >
-          {t("cta")}
-        </Link>
-
-        <ul className="mt-7 grid gap-3 sm:grid-cols-3">
-          {reassurances.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex items-start gap-2.5 text-sm text-ink-600">
-              <Icon size={18} className="mt-0.5 shrink-0 text-cyan-500" aria-hidden />
-              <span>{text}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* ── Why it matters ─────────────────────────────────────────────── */}
-      <section className="border-t border-border bg-surface-sunken px-5 py-10">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-xl font-bold text-ink-900">{t("why.title")}</h2>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-3">
-            {stats.map(({ value, label }) => (
-              <div key={label} className="card p-5">
-                <dt className="sr-only">{label}</dt>
-                <dd>
-                  <span className="block text-2xl leading-tight font-bold text-ink-900">
-                    {value}
-                  </span>
-                  <span className="mt-2 block text-sm leading-snug text-ink-600">
-                    {label}
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      {/* ── Regulatory posture, stated plainly and early ───────────────── */}
-      <section className="px-5 py-10">
-        <div className="mx-auto flex max-w-3xl gap-3.5 rounded-2xl border border-border bg-surface-sunken p-5">
-          <ShieldCheck size={22} className="mt-0.5 shrink-0 text-ink-500" aria-hidden />
-          <div>
-            <p className="font-bold text-ink-900">{t("disclaimerTitle")}</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-ink-600">
-              {t("disclaimer")}
-            </p>
+    <main className="min-h-dvh overflow-x-hidden bg-[#edf4ef] px-0 sm:px-5 sm:py-5">
+      <section className="mx-auto min-h-dvh max-w-[610px] overflow-hidden bg-white px-5 py-5 shadow-[0_0_50px_rgb(23_65_53/0.08)] sm:min-h-0 sm:rounded-[2rem] sm:px-12 sm:py-8">
+        <header className="flex items-center justify-between gap-4">
+          <span className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-[#078679]">
+            <Image src="/heartline-logo.png" width={42} height={42} alt="" priority />
+            <span>HeartLine<small className="block text-[9px] font-extrabold tracking-[.2em] text-[#81908b] uppercase">by PharmEvo</small></span>
+          </span>
+          <div className="flex items-center gap-2">
+            <Link href="/account" className="hidden text-sm font-bold text-[#55706a] sm:inline">Account</Link>
+            <Link href="/" locale={locale === "en" ? "ur" : "en"} className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#cad9e4] px-3 text-sm font-bold text-[#123d55]"><Languages size={16} />{locale === "en" ? "اردو" : "EN"}</Link>
           </div>
-        </div>
-      </section>
+        </header>
 
-      <footer className="px-5 pb-10 text-center">
-        <p className="text-sm text-ink-400">{tb("tagline")}</p>
-      </footer>
+        <section className="pt-12 sm:pt-16">
+          <p className="text-xs font-extrabold tracking-[.16em] text-[#6b817b] uppercase">{copy.eyebrow}</p>
+          <h1 className="mt-3 font-serif text-[clamp(2.35rem,10vw,4.5rem)] leading-[.96] tracking-[-.055em] text-[#063a3d]">{copy.title}</h1>
+          <p className="mt-5 max-w-lg leading-7 text-[#5f7570]">{copy.subtitle}</p>
+
+          <div className="relative mt-6 aspect-[16/8.3] overflow-hidden rounded-[1.6rem] bg-[#f4e8cd]">
+            <Image src="/heartline-bp-guidance.png" fill sizes="(max-width: 640px) 92vw, 510px" className="object-cover" alt="A man calmly checking his blood pressure at home" priority />
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.understand}</strong>{copy.understandBody}</div>
+            <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.guide}</strong>{copy.guideBody}</div>
+          </div>
+
+          <Link href="/care" className="mt-7 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#078679] px-6 font-extrabold text-white shadow-[0_12px_25px_rgb(7_134_121/0.2)]">{copy.start} <ArrowRight size={19} className="rtl:rotate-180" /></Link>
+          <Link href="/care" className="mt-3 flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-[#cce1d8] px-6 font-bold text-[#078679]"><Bot size={18} /> {copy.ask}</Link>
+        </section>
+
+        <section className="mt-9 grid gap-3 sm:grid-cols-3">
+          {copy.features.map(({ icon: Icon, title, body }) => <div key={title} className="rounded-2xl border border-[#deebe5] p-4"><Icon size={20} className="text-[#078679]" /><strong className="mt-3 block text-sm text-[#093c3d]">{title}</strong><p className="mt-1 text-xs leading-5 text-[#6b7e79]">{body}</p></div>)}
+        </section>
+
+        <footer className="mt-8 flex gap-2 border-t border-[#e2ece8] pt-5 text-xs leading-5 text-[#758781]"><ShieldCheck size={16} className="mt-0.5 shrink-0" /><p>{copy.disclaimer}</p></footer>
+      </section>
     </main>
   );
 }

@@ -196,7 +196,7 @@ export function ResultView() {
         <h2 className="text-xl font-bold">{t("nextTitle")}</h2>
         <p className="mt-2 text-base leading-relaxed text-white/90">{t("nextBody")}</p>
         <Link
-          href="/passport"
+          href="/care"
           className="mt-5 inline-flex min-h-[3.5rem] w-full items-center justify-center gap-2 rounded-xl bg-white px-6 text-lg font-bold text-ink-900"
         >
           {t("nextCta")}

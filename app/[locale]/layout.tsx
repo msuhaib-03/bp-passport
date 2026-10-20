@@ -13,14 +13,14 @@ export function generateStaticParams() {
 
 export const metadata: Metadata = {
   title: {
-    default: "BP Passport — free 60-second blood pressure check",
-    template: "%s · BP Passport",
+    default: "HeartLine — your BP Passport and care companion",
+    template: "%s · HeartLine",
   },
   description:
     "A free, bilingual blood-pressure check for Pakistan. Sixty seconds, no download, no cost. Understand your reading and track it over time.",
-  applicationName: "BP Passport",
+  applicationName: "HeartLine",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "BP Passport", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "HeartLine", statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };
 
