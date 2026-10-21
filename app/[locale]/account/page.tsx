@@ -14,7 +14,7 @@ export default async function AccountPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ next?: string; confirmed?: string }>;
+  searchParams: Promise<{ next?: string }>;
 }) {
   const { locale } = await params;
   const query = await searchParams;
@@ -31,7 +31,7 @@ export default async function AccountPage({
           {destination === "portal" ? "Sign in to review records that patients have explicitly shared with your clinician profile." : "Sign in to keep your passport and readings available when you change phones or browsers."}
         </p>
         <div className="mt-8">
-          <AccountPanel locale={locale} destination={destination} confirmed={query.confirmed === "1"} />
+          <AccountPanel locale={locale} destination={destination} />
         </div>
         <Link href={destination === "portal" ? "/portal" : "/care"} className="mt-6 inline-block text-sm font-semibold text-cyan-600">
           {destination === "portal" ? "Back to clinician portal" : "Back to patient dashboard"}

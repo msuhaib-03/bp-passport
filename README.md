@@ -93,10 +93,7 @@ clinician review endpoint and must remain server-only.
 
 Before either deployment, apply migrations `0001` through `0012`, enable
 Supabase Authentication → Providers → Anonymous Sign-Ins and Email, and add the
-deployed `/en/account`, `/ur/account`, `/en/auth/confirmed`, and
-`/ur/auth/confirmed` URLs to the allowed redirect list. For Google sign-in, also
-enable the Google provider in Supabase Authentication and configure its OAuth
-credentials there.
+deployed `/en/account` and `/ur/account` URLs to the allowed redirect list.
 
 ### Current product scope
 
@@ -286,7 +283,7 @@ The browser keeps working offline and merges its stable event IDs with the authe
 | Horizon | Scope |
 |---|---|
 | **H1 — now** | Landing · Heart Audit · results · Passport · bilingual · offline-capable |
-| **H2 — now** | Email/Google accounts · consented cloud sync · pilot clinician portal · expiring/revocable shares · Postgres + RLS |
+| **H2 — now** | Email accounts · consented cloud sync · pilot clinician portal · expiring/revocable shares · Postgres + RLS |
 | **H2 next** | Phone OTP · automated PMDC reconciliation · research export review workflow |
 | **H3** | Bluetooth cuff sync · diagnostic lab booking · corporate analytics |
 | **H4** | Multi-tenant SaaS · HL7 FHIR · regional expansion |
