@@ -489,8 +489,9 @@ describe("Row Level Security actually denies", () => {
     expect(Number(res.rows[0]!.n)).toBe(0);
   });
 
-  it("denies an unverified clinician even with a valid share", async () => {
-    // A lapsed or pending PMDC registration must lose clinical access.
+  it("allows pending pilot clinicians but still blocks rejected profiles", async () => {
+    // PMDC verification is temporarily optional during the pilot. Access still
+    // requires an explicit live patient share and rejected profiles stay out.
     await asOwner();
     await db.query("delete from patient_shares where patient_id = $1", [alice]);
     const unverified = await db.query<{ id: string }>(
@@ -501,8 +502,16 @@ describe("Row Level Security actually denies", () => {
       [alice, unverified.rows[0]!.id],
     );
     await actAs(DR_UNVERIFIED);
-    const res = await db.query<{ n: string }>("select count(*) as n from readings");
-    expect(Number(res.rows[0]!.n)).toBe(0);
+    const pilot = await db.query<{ n: string }>("select count(*) as n from readings");
+    expect(Number(pilot.rows[0]!.n)).toBe(4);
+
+    await asOwner();
+    await db.query("update clinicians set status = 'rejected' where auth_user_id = $1", [DR_UNVERIFIED]);
+    await actAs(DR_UNVERIFIED);
+    const rejected = await db.query<{ n: string }>("select count(*) as n from readings");
+    expect(Number(rejected.rows[0]!.n)).toBe(0);
+    await asOwner();
+    await db.query("update clinicians set status = 'pending' where auth_user_id = $1", [DR_UNVERIFIED]);
   });
 
   it("prevents a clinician from self-verifying", async () => {

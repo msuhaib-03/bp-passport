@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { localAssistantReply } from "@/lib/assistant";
 
-describe("HeartLine assistant safety", () => {
+describe("BP Passport assistant safety", () => {
   it("routes red-flag text to emergency care before coaching", () => {
     const reply = localAssistantReply("I have crushing chest pain", "en");
     expect(reply.urgent).toBe(true);

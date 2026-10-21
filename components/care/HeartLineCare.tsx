@@ -7,7 +7,6 @@ import {
   Activity,
   ArrowLeft,
   ArrowRight,
-  BarChart3,
   Bot,
   Check,
   ChevronRight,
@@ -36,11 +35,9 @@ import { LocaleSwitch } from "@/components/ui/LocaleSwitch";
 import {
   CareAssistantPanel,
   CareCaregiverView,
-  CareDoctorView,
   CareHealthView,
   CareHomeView,
   CareMedicinesView,
-  CareProgrammeView,
   CareReportsView,
 } from "@/components/care/CareViews";
 import { Link, useRouter } from "@/lib/i18n/navigation";
@@ -61,7 +58,7 @@ import { isCloudPersistenceConfigured, syncReading } from "@/lib/supabase/persis
 import styles from "./heartline-care.module.css";
 
 type IntroScreen = "welcome" | "access" | "profile" | "assessment" | "snapshot" | "dashboard";
-type AppView = "home" | "health" | "medicines" | "reports" | "caregiver" | "doctor" | "programme" | "assistant";
+type AppView = "home" | "health" | "medicines" | "reports" | "caregiver" | "assistant";
 
 interface ChatMessage {
   id: string;
@@ -104,8 +101,6 @@ const NAV: Array<{ id: AppView; label: string; icon: typeof Home }> = [
   { id: "medicines", label: "Medicines", icon: Pill },
   { id: "reports", label: "Reports", icon: FileText },
   { id: "caregiver", label: "Caregiver", icon: Users },
-  { id: "doctor", label: "Doctor", icon: Stethoscope },
-  { id: "programme", label: "Programme view", icon: BarChart3 },
 ];
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -113,7 +108,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
     <span className={styles.brand}>
       <Image src="/heartline-logo.png" width={48} height={48} alt="" priority />
       <span>
-        HeartLine
+        BP Passport
         {!compact && <small className={styles.byline}>by PharmEvo</small>}
       </span>
     </span>
@@ -124,7 +119,7 @@ function displayCategory(category: ReturnType<typeof assess>["category"], locale
   return careText(locale, ({ optimal: "Optimal range", normal: "Normal range", high_normal: "High-normal range", grade_1: "Grade 1 range", grade_2: "Grade 2 range" })[category]);
 }
 
-export function HeartLineCare() {
+export function BpPassportCare() {
   const locale = useLocale() === "ur" ? "ur" : "en";
   const t = (text: string) => careText(locale, text);
   const [ready, setReady] = useState(false);
@@ -182,16 +177,16 @@ export function HeartLineCare() {
             <div className={styles.hero}>
               <p className={styles.eyebrow}>{t("Your everyday heart companion")}</p>
               <h1 className={styles.display}>{t("Your heart. Your health. One clear next step.")}</h1>
-              <p className={styles.lede}>{t("HeartLine helps you understand your health, save real readings, and take one small action at a time.")}</p>
+              <p className={styles.lede}>{t("BP Passport helps you understand your health, save real readings, and take one small action at a time.")}</p>
               <div className={styles.heroImage}>
                 <Image src="/heartline-bp-guidance.png" fill sizes="(max-width: 600px) 92vw, 520px" alt="A man calmly checking his blood pressure at home" priority />
               </div>
               <div className={styles.journey}>
                 <div className={styles.journeyItem}><strong>{t("1. Understand")}</strong>{t("One short health check.")}</div>
-                <div className={styles.journeyItem}><strong>{t("2. Guide")}</strong>{t("HeartLine shows the next step.")}</div>
+                <div className={styles.journeyItem}><strong>{t("2. Guide")}</strong>{t("BP Passport shows the next step.")}</div>
               </div>
               <button className={styles.primary} onClick={() => setIntro("access")}>{t("Start your health check")} <ArrowRight size={18} /></button>
-              <button className={styles.secondary} onClick={() => { setIntro("dashboard"); setView("assistant"); }}><Bot size={18} /> {t("Ask HeartLine first")}</button>
+              <button className={styles.secondary} onClick={() => { setIntro("dashboard"); setView("assistant"); }}><Bot size={18} /> {t("Ask BP Passport first")}</button>
             </div>
           </section>
         </main>
@@ -389,6 +384,7 @@ function Dashboard({
           <div className={styles.pageHeader}>
             <div><p className={styles.eyebrow}>{new Intl.DateTimeFormat(locale === "ur" ? "ur-PK" : "en-PK", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</p></div>
             <div className={styles.headerActions}>
+              <Link href="/" className={styles.headerLogout} aria-label={t("Back")}><Home size={18} /></Link>
               <LocaleSwitch />
               {signedIn && <button type="button" className={styles.headerLogout} onClick={() => void logout()} disabled={loggingOut} aria-label={t("Sign out everywhere")}><LogOut size={18} /></button>}
             </div>
@@ -398,9 +394,7 @@ function Dashboard({
           {view === "medicines" && <CareMedicinesView locale={locale} care={care} updateCare={updateCare} />}
           {view === "reports" && <CareReportsView locale={locale} passport={passport} />}
           {view === "caregiver" && <CareCaregiverView locale={locale} care={care} updateCare={updateCare} />}
-          {view === "doctor" && <CareDoctorView locale={locale} passport={passport} />}
-          {view === "programme" && <CareProgrammeView locale={locale} passport={passport} care={care} />}
-          {view === "assistant" && <div className={styles.sectionHead}><h1>{t("HeartLine assistant")}</h1><p className={styles.subtle}>{t("Ask by text or voice. Emergency messages are screened before any AI provider is called.")}</p><div className={styles.card} style={{ marginTop: "1rem", minHeight: "32rem" }}><CareAssistantPanel locale={locale} latest={latest} hasMedicationReminder={care.medications.some((item) => item.active)} expanded /></div></div>}
+          {view === "assistant" && <div className={styles.sectionHead}><h1>{t("BP Passport assistant")}</h1><p className={styles.subtle}>{t("Ask by text or voice. Emergency messages are screened before any AI provider is called.")}</p><div className={styles.card} style={{ marginTop: "1rem", minHeight: "32rem" }}><CareAssistantPanel locale={locale} latest={latest} hasMedicationReminder={care.medications.some((item) => item.active)} expanded /></div></div>}
         </div>
       </section>
 
@@ -451,7 +445,7 @@ function MedicinesView({ care, updateCare }: { care: CareState; updateCare: (cha
   const [label, setLabel] = useState("");
   const [schedule, setSchedule] = useState("8:00 AM");
   function add(event: FormEvent) { event.preventDefault(); if (!label.trim()) return; updateCare({ medications: [...care.medications, { id: crypto.randomUUID(), label: label.trim(), schedule: schedule.trim(), active: true }] }); setLabel(""); }
-  return <><div className={styles.sectionHead}><h1>Medicines</h1><p className={styles.subtle}>Reminders for medicine already prescribed to you. HeartLine never recommends or changes treatment.</p></div><form className={`${styles.card} ${styles.formCard}`} onSubmit={add}><h2>Add a prescribed reminder</h2><label className={styles.field}>Label from your prescription<input value={label} maxLength={80} onChange={(event) => setLabel(event.target.value)} placeholder="e.g. Morning tablet" /></label><label className={styles.field}>When do you take it?<input value={schedule} maxLength={40} onChange={(event) => setSchedule(event.target.value)} /></label><button className={styles.primary} style={{ marginTop: "1rem" }}>Add reminder</button></form><section className={styles.card} style={{ marginTop: "1rem" }}><h2>Your reminders</h2>{care.medications.length === 0 ? <div className={styles.empty}>No reminders yet.</div> : care.medications.map((item) => <div className={styles.checkRow} key={item.id}><div><strong>{item.label}</strong><p className={styles.subtle}>{item.schedule}{item.checkedOn === todayKey() ? " · checked today" : ""}</p></div><button className={styles.textButton} onClick={() => updateCare({ medications: care.medications.map((entry) => entry.id === item.id ? { ...entry, checkedOn: entry.checkedOn === todayKey() ? undefined : todayKey() } : entry) })}>{item.checkedOn === todayKey() ? "Undo" : "Mark taken"}</button></div>)}</section></>;
+  return <><div className={styles.sectionHead}><h1>Medicines</h1><p className={styles.subtle}>Reminders for medicine already prescribed to you. BP Passport never recommends or changes treatment.</p></div><form className={`${styles.card} ${styles.formCard}`} onSubmit={add}><h2>Add a prescribed reminder</h2><label className={styles.field}>Label from your prescription<input value={label} maxLength={80} onChange={(event) => setLabel(event.target.value)} placeholder="e.g. Morning tablet" /></label><label className={styles.field}>When do you take it?<input value={schedule} maxLength={40} onChange={(event) => setSchedule(event.target.value)} /></label><button className={styles.primary} style={{ marginTop: "1rem" }}>Add reminder</button></form><section className={styles.card} style={{ marginTop: "1rem" }}><h2>Your reminders</h2>{care.medications.length === 0 ? <div className={styles.empty}>No reminders yet.</div> : care.medications.map((item) => <div className={styles.checkRow} key={item.id}><div><strong>{item.label}</strong><p className={styles.subtle}>{item.schedule}{item.checkedOn === todayKey() ? " · checked today" : ""}</p></div><button className={styles.textButton} onClick={() => updateCare({ medications: care.medications.map((entry) => entry.id === item.id ? { ...entry, checkedOn: entry.checkedOn === todayKey() ? undefined : todayKey() } : entry) })}>{item.checkedOn === todayKey() ? "Undo" : "Mark taken"}</button></div>)}</section></>;
 }
 
 function ReportsView({ passport }: { passport: Passport | null }) {
@@ -508,5 +502,5 @@ function AssistantPanel({ locale, latest, hasMedicationReminder, expanded = fals
     recognition.onend = () => setListening(false); recognition.onerror = () => setListening(false); recognitionRef.current = recognition; setListening(true); recognition.start();
   }
 
-  return <div style={{ display: "flex", flexDirection: "column", height: expanded ? "30rem" : "100%" }}><div className={styles.assistantHead}><span className={styles.iconBadge}><Bot size={19} /></span><div><strong>HeartLine assistant</strong><small>{provider}</small></div></div><div className={styles.assistantMessages} aria-live="polite">{messages.map((message) => <div key={message.id} className={`${styles.message} ${message.role === "user" ? styles.messageUser : ""} ${message.urgent ? styles.messageUrgent : ""}`}>{message.text}</div>)}{busy && <div className={styles.message}>Thinking…</div>}</div><div className={styles.quickRow}>{["What should I do next?", "My medicines", "What should I eat?", "My report"].map((prompt) => <button className={styles.quick} key={prompt} onClick={() => void send(prompt)}>{prompt}</button>)}</div><form className={styles.assistantForm} onSubmit={(event) => { event.preventDefault(); void send(input); }}><input aria-label="Ask HeartLine" value={input} maxLength={600} onChange={(event) => setInput(event.target.value)} placeholder="Ask or speak…" /><button type="button" className={styles.iconButton} aria-label={listening ? "Stop listening" : "Speak your question"} aria-pressed={listening} onClick={toggleVoice}><Mic size={17} /></button><button className={styles.iconButton} aria-label="Send" disabled={busy}><Send size={17} /></button></form><p className={styles.assistantMeta}>Education only · emergencies screened first · configured AI providers receive the question and latest reading · call 1122 for urgent symptoms</p></div>;
+  return <div style={{ display: "flex", flexDirection: "column", height: expanded ? "30rem" : "100%" }}><div className={styles.assistantHead}><span className={styles.iconBadge}><Bot size={19} /></span><div><strong>BP Passport assistant</strong><small>{provider}</small></div></div><div className={styles.assistantMessages} aria-live="polite">{messages.map((message) => <div key={message.id} className={`${styles.message} ${message.role === "user" ? styles.messageUser : ""} ${message.urgent ? styles.messageUrgent : ""}`}>{message.text}</div>)}{busy && <div className={styles.message}>Thinking…</div>}</div><div className={styles.quickRow}>{["What should I do next?", "My medicines", "What should I eat?", "My report"].map((prompt) => <button className={styles.quick} key={prompt} onClick={() => void send(prompt)}>{prompt}</button>)}</div><form className={styles.assistantForm} onSubmit={(event) => { event.preventDefault(); void send(input); }}><input aria-label="Ask BP Passport" value={input} maxLength={600} onChange={(event) => setInput(event.target.value)} placeholder="Ask or speak…" /><button type="button" className={styles.iconButton} aria-label={listening ? "Stop listening" : "Speak your question"} aria-pressed={listening} onClick={toggleVoice}><Mic size={17} /></button><button className={styles.iconButton} aria-label="Send" disabled={busy}><Send size={17} /></button></form><p className={styles.assistantMeta}>Education only · emergencies screened first · configured AI providers receive the question and latest reading · call 1122 for urgent symptoms</p></div>;
 }

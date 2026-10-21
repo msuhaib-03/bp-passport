@@ -1,15 +1,16 @@
 "use client";
 
 import { FormEvent, useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { KeyRound, LogIn, LogOut, Mail, Stethoscope, UserPlus } from "lucide-react";
+import { KeyRound, LogIn, LogOut, Mail, UserPlus } from "lucide-react";
 
-import { Link } from "@/lib/i18n/navigation";
+import { Link, useRouter } from "@/lib/i18n/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Mode = "login" | "register" | "recover" | "update-password";
 const AUTH_RETURN_KEY = "bpp.auth.return.v1";
 
-export function AccountPanel({ locale }: { locale: string }) {
+export function AccountPanel({ locale, destination = "care", confirmed = false }: { locale: string; destination?: "care" | "portal"; confirmed?: boolean }) {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,7 +21,7 @@ export function AccountPanel({ locale }: { locale: string }) {
   const [configured] = useState(() => Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   ));
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(confirmed ? "Email confirmed. Sign in to continue." : "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -28,6 +29,7 @@ export function AccountPanel({ locale }: { locale: string }) {
     const client = getSupabaseBrowserClient();
     if (!client) return;
     const returnPath = readReturnPath(locale);
+    const oauthReturn = new URLSearchParams(window.location.search).get("oauth") === "1";
 
     void client.auth.getSession().then(({ data }) => {
       setUserEmail(data.session?.user.email ?? null);
@@ -35,6 +37,8 @@ export function AccountPanel({ locale }: { locale: string }) {
       setEmailConfirmed(Boolean(data.session?.user.email_confirmed_at));
       if (returnPath && data.session?.user.email_confirmed_at && !data.session.user.is_anonymous) {
         followReturnPath(returnPath);
+      } else if (oauthReturn && data.session?.user.email_confirmed_at && !data.session.user.is_anonymous) {
+        router.replace(destination === "portal" ? "/portal" : "/care");
       }
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
@@ -44,10 +48,12 @@ export function AccountPanel({ locale }: { locale: string }) {
       if (event === "PASSWORD_RECOVERY") setMode("update-password");
       else if (event === "SIGNED_IN" && returnPath && session?.user.email_confirmed_at && !session.user.is_anonymous) {
         followReturnPath(returnPath);
+      } else if (event === "SIGNED_IN" && oauthReturn && session?.user.email_confirmed_at && !session.user.is_anonymous) {
+        router.replace(destination === "portal" ? "/portal" : "/care");
       }
     });
     return () => data.subscription.unsubscribe();
-  }, [locale]);
+  }, [destination, locale, router]);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -73,7 +79,7 @@ export function AccountPanel({ locale }: { locale: string }) {
       const returnPath = readReturnPath(locale);
       if (mode === "recover") {
         const result = await client.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: accountReturnUrl(locale),
+          redirectTo: passwordResetReturnUrl(locale),
         });
         if (result.error) throw result.error;
         setMessage("Check your email for a secure password-reset link.");
@@ -101,13 +107,17 @@ export function AccountPanel({ locale }: { locale: string }) {
           password,
         });
         if (result.error) throw result.error;
-        setMessage("Signed in. Open your passport to merge and fetch your cloud record.");
+        if (returnPath) {
+          followReturnPath(returnPath);
+          return;
+        }
+        router.push(destination === "portal" ? "/portal" : "/care");
         return;
       }
 
       if (password !== confirmPassword) throw new Error("Passwords do not match.");
       const current = await client.auth.getSession();
-      const redirectTo = accountReturnUrl(locale);
+      const redirectTo = confirmationReturnUrl(locale, destination);
       const result = current.data.session?.user.is_anonymous
         ? await client.auth.updateUser(
             { email: email.trim(), password },
@@ -136,6 +146,21 @@ export function AccountPanel({ locale }: { locale: string }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Account request failed.");
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function signInWithGoogle() {
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    setBusy(true);
+    setError("");
+    const result = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: accountReturnUrl(locale, destination) },
+    });
+    if (result.error) {
+      setError(result.error.message);
       setBusy(false);
     }
   }
@@ -174,7 +199,7 @@ export function AccountPanel({ locale }: { locale: string }) {
     const result = await client.auth.resend({
       type: "signup",
       email: userEmail,
-      options: { emailRedirectTo: accountReturnUrl(locale) },
+      options: { emailRedirectTo: confirmationReturnUrl(locale, destination) },
     });
     setBusy(false);
     if (result.error) setError(result.error.message);
@@ -209,6 +234,8 @@ export function AccountPanel({ locale }: { locale: string }) {
   }
 
   if (userEmail && !isAnonymous && emailConfirmed && mode !== "update-password") {
+    const primaryDestination = destination === "portal" ? "/portal" : "/passport";
+    const primaryLabel = destination === "portal" ? "Open clinician portal" : "Open my passport";
     return (
       <section className="card p-6">
         <p className="text-sm font-semibold text-ink-500">Signed in</p>
@@ -218,10 +245,10 @@ export function AccountPanel({ locale }: { locale: string }) {
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Link
-            href="/passport"
+            href={primaryDestination}
             className="brand-gradient inline-flex min-h-14 items-center justify-center rounded-xl px-5 font-bold text-white"
           >
-            Open my passport
+            {primaryLabel}
           </Link>
           <button
             type="button"
@@ -233,10 +260,7 @@ export function AccountPanel({ locale }: { locale: string }) {
             Sign out
           </button>
         </div>
-        <Link href="/portal" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600">
-          <Stethoscope size={17} aria-hidden />
-          Clinician portal
-        </Link>
+        {destination === "care" && <Link href="/care" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600">Go to patient care dashboard</Link>}
         {message && <p className="mt-4 text-sm text-ink-600" role="status">{message}</p>}
         {error && <p className="mt-4 text-sm text-[var(--color-risk-grade2-ink)]" role="alert">{error}</p>}
       </section>
@@ -254,6 +278,13 @@ export function AccountPanel({ locale }: { locale: string }) {
             Register
           </ModeButton>
         </div>
+      )}
+
+      {mode !== "recover" && mode !== "update-password" && (
+        <>
+          <button type="button" disabled={busy} onClick={() => void signInWithGoogle()} className="mt-5 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-border-strong bg-white px-5 font-bold text-ink-800 hover:bg-ink-50 disabled:opacity-60"><span className="grid size-7 place-items-center rounded-full bg-white text-lg font-black text-[#4285f4] shadow-sm">G</span>Continue with Google</button>
+          <div className="my-5 flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-ink-400"><span className="h-px flex-1 bg-border" />or use email<span className="h-px flex-1 bg-border" /></div>
+        </>
       )}
 
       <form onSubmit={submit} className="mt-5 space-y-4">
@@ -358,7 +389,20 @@ function submitLabel(mode: Mode) {
   return "Update password";
 }
 
-function accountReturnUrl(locale: string) {
+function accountReturnUrl(locale: string, destination: "care" | "portal" = "care") {
+  const url = new URL(`/${locale}/account`, window.location.origin);
+  url.searchParams.set("oauth", "1");
+  url.searchParams.set("next", destination);
+  return url.toString();
+}
+
+function confirmationReturnUrl(locale: string, destination: "care" | "portal") {
+  const url = new URL(`/${locale}/auth/confirmed`, window.location.origin);
+  url.searchParams.set("next", destination);
+  return url.toString();
+}
+
+function passwordResetReturnUrl(locale: string) {
   return new URL(`/${locale}/account`, window.location.origin).toString();
 }
 

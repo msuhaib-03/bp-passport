@@ -87,21 +87,21 @@ export function SharePanel({ enabled }: { enabled: boolean }) {
         <div>
           <h2 className="text-lg font-bold text-ink-900">Share with a clinician</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-600">
-            Enter the clinician&apos;s PMDC number. Links expire after 30 days and can be revoked instantly.
+            Enter the clinician&apos;s pilot ID or PMDC number. Links expire after 30 days and can be revoked instantly.
           </p>
         </div>
       </div>
 
       <form onSubmit={create} className="mt-5 flex flex-col gap-3 sm:flex-row">
         <label className="min-w-0 flex-1 text-sm font-semibold text-ink-700">
-          PMDC registration number
+          Clinician ID / PMDC number
           <input
             required
             minLength={4}
             maxLength={24}
             value={pmdcNumber}
             onChange={(event) => setPmdcNumber(event.target.value)}
-            placeholder="e.g. 12345-P"
+            placeholder="e.g. PILOT-DR-001"
             className="mt-2 min-h-14 w-full rounded-xl border border-border-strong px-4 uppercase outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
           />
         </label>
@@ -131,7 +131,7 @@ export function SharePanel({ enabled }: { enabled: boolean }) {
               <li key={share.share_id} className="flex items-start justify-between gap-3 rounded-xl border border-border p-4">
                 <div>
                   <p className="font-semibold text-ink-900">{share.clinic_name}</p>
-                  <p className="mt-1 text-xs text-ink-500">PMDC {share.pmdc_number} · {share.city}</p>
+                  <p className="mt-1 text-xs text-ink-500">Clinician ID {share.pmdc_number} · {share.city}</p>
                   <p className="mt-1 text-xs text-ink-500">
                     Expires {new Date(share.expires_at).toLocaleDateString()} · opened {share.access_count} time{share.access_count === 1 ? "" : "s"}
                   </p>

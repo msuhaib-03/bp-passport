@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Check, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { Check, Info, LockKeyhole, RefreshCw, ShieldCheck, X } from "lucide-react";
 
 interface ReviewRow {
   id: string;
@@ -69,20 +69,30 @@ export function ClinicianReview() {
     return (
       <section className="card p-6">
         <ShieldCheck size={34} className="text-cyan-600" aria-hidden />
-        <h1 className="mt-4 text-2xl font-bold text-ink-900">Clinician verification</h1>
+        <p className="mt-4 text-xs font-extrabold tracking-[.14em] text-cyan-700 uppercase">Programme staff workspace</p>
+        <h1 className="mt-2 text-2xl font-bold text-ink-900">BP Passport administration</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-600">
-          Enter the server administrator token. It is used for this request only and is not stored in the browser.
+          This is separate from patient and clinician accounts. It controls sensitive programme operations, so real data stays locked behind the server administrator token configured on Render.
         </p>
+        <div className="mt-5 flex gap-3 rounded-xl bg-cyan-50 p-4 text-sm leading-6 text-ink-700"><Info size={19} className="mt-0.5 shrink-0 text-cyan-700" /><p>PMDC review is paused for pilot clinicians, but the queue is preserved for the future verified rollout. The token is used for this request only and is never stored in the browser.</p></div>
         <form onSubmit={load} className="mt-6">
           <label className="text-sm font-semibold text-ink-700">
             Administrator token
             <input required minLength={32} type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} className="mt-2 min-h-14 w-full rounded-xl border border-border-strong px-4 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
           </label>
           <button disabled={busyId !== null} className="brand-gradient mt-4 min-h-14 w-full rounded-xl px-5 font-bold text-white disabled:opacity-60">
-            {busyId ? "Checking…" : "Open review queue"}
+            <LockKeyhole size={17} className="me-2 inline" />{busyId ? "Checking…" : "Open live operations"}
           </button>
         </form>
         {error && <p className="mt-4 text-sm text-[var(--color-risk-grade2-ink)]" role="alert">{error}</p>}
+        <div className="mt-7 border-t border-border pt-6">
+          <p className="text-xs font-extrabold tracking-wide text-ink-400 uppercase">Sample queue preview</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-ink-50 p-4"><strong className="text-ink-900">Dr. Ayesha Khan</strong><p className="mt-1 text-xs text-ink-500">PILOT-DR-001 · Karachi Heart Clinic</p><span className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">Pending</span></div>
+            <div className="rounded-xl border border-border bg-ink-50 p-4"><strong className="text-ink-900">Dr. Hamza Ali</strong><p className="mt-1 text-xs text-ink-500">PMDC-45821 · City Medical Centre</p><span className="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Example approved</span></div>
+          </div>
+          <p className="mt-3 text-xs text-ink-400">Fictional data for demonstration. Buttons appear only after authorized access.</p>
+        </div>
       </section>
     );
   }

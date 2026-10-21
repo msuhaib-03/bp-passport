@@ -7,6 +7,7 @@ import { Cloud, Flame, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { BpEntry } from "@/components/audit/BpEntry";
 import { PrivacyControls } from "@/components/passport/PrivacyControls";
 import { SharePanel } from "@/components/passport/SharePanel";
+import { WhatsAppShareButton } from "@/components/passport/WhatsAppShareButton";
 import { Button } from "@/components/ui/Button";
 import { LogoMark } from "@/components/brand/Logo";
 import { Link } from "@/lib/i18n/navigation";
@@ -63,6 +64,7 @@ export function PassportView() {
   const [ready, setReady] = useState(false);
   const [cloudState, setCloudState] = useState<"connected" | "offline" | "syncing" | "consent" | "paused">("syncing");
   const [syncError, setSyncError] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -189,6 +191,7 @@ export function PassportView() {
     const updated = appendReading({ ...reading, at: new Date().toISOString() });
     if (updated) {
       setPassport(updated);
+      setSavedMessage("Today's reading is saved. You can stay here, return to care, or manage your account.");
       if (cloudState === "connected") {
         void syncReading(updated.readings[updated.readings.length - 1]!).catch((caught) => {
           setSyncError(caught instanceof Error ? caught.message : "Reading sync failed.");
@@ -226,7 +229,11 @@ export function PassportView() {
   const summary = summariseSeries(recent);
 
   return (
-    <div className="mx-auto max-w-xl px-5 pt-6 pb-12">
+    <div className="mx-auto max-w-5xl px-5 pt-6 pb-12">
+      <nav className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-white p-3 shadow-sm" aria-label="Passport navigation">
+        <Link href="/care" className="inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold text-cyan-700">← Patient dashboard</Link>
+        <div className="flex flex-wrap gap-2"><Link href="/" className="inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-ink-600">Home</Link><Link href="/account" className="inline-flex min-h-11 items-center rounded-xl border border-border-strong px-4 text-sm font-bold text-ink-700">Sign in / account</Link></div>
+      </nav>
       {/* ── Passport card ─────────────────────────────────────────────── */}
       <section className="rounded-2xl bg-ink-900 p-6 text-white">
         <div className="flex items-start justify-between gap-4">
@@ -260,6 +267,7 @@ export function PassportView() {
       <Link href="/account" className="mt-2 block text-center text-sm font-semibold text-cyan-600">
         Sign in or manage account
       </Link>
+      {savedMessage && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-semibold text-emerald-900" role="status">{savedMessage}</div>}
 
       {(cloudState === "consent" || cloudState === "paused") && (
         <section className="card mt-5 p-6">
@@ -338,6 +346,13 @@ export function PassportView() {
             </p>
           )}
         </section>
+      )}
+
+      {summary && (
+        <WhatsAppShareButton
+          className="mt-4 w-full"
+          report={`BP Passport · 14-day report\nPassport: ${passport.id}\nAverage: ${summary.meanSystolic}/${summary.meanDiastolic} mmHg\nReadings: ${summary.count}\nSystolic trend: ${summary.systolicTrend > 0 ? "+" : ""}${summary.systolicTrend} mmHg\n\nShared by the patient. This report is not a diagnosis.`}
+        />
       )}
 
       {passport.readings.length === 1 && (

@@ -48,7 +48,7 @@ export function PwaRegister() {
   return (
     <>
       {!online && <div role="status" className="fixed inset-x-3 top-3 z-[70] mx-auto flex max-w-md items-center justify-center gap-2 rounded-xl bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-xl"><WifiOff size={17} />{isUrdu ? "آف لائن موڈ: محفوظ پاسپورٹ کی خصوصیات دستیاب رہیں گی۔" : "Offline mode: saved Passport features remain available."}</div>}
-      {installPrompt && !dismissed && <div className="fixed bottom-4 start-4 z-[60] flex items-center gap-2 rounded-xl border border-border bg-white p-2 shadow-xl"><button type="button" onClick={() => void install()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-cyan-600 px-4 text-sm font-bold text-white"><Download size={17} />{isUrdu ? "ہارٹ لائن انسٹال کریں" : "Install HeartLine"}</button><button type="button" onClick={() => setDismissed(true)} className="grid size-11 place-items-center rounded-lg text-ink-500" aria-label={isUrdu ? "انسٹال تجویز بند کریں" : "Dismiss install suggestion"}><X size={18} /></button></div>}
+      {installPrompt && !dismissed && <div className="fixed bottom-4 start-4 z-[60] flex items-center gap-2 rounded-xl border border-border bg-white p-2 shadow-xl"><button type="button" onClick={() => void install()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-cyan-600 px-4 text-sm font-bold text-white"><Download size={17} />{isUrdu ? "بی پی پاسپورٹ انسٹال کریں" : "Install BP Passport"}</button><button type="button" onClick={() => setDismissed(true)} className="grid size-11 place-items-center rounded-lg text-ink-500" aria-label={isUrdu ? "انسٹال تجویز بند کریں" : "Dismiss install suggestion"}><X size={18} /></button></div>}
     </>
   );
 }

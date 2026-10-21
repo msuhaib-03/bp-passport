@@ -1,4 +1,4 @@
-const CACHE = "heartline-shell-v1";
+const CACHE = "bp-passport-shell-v2";
 const SHELL = [
   "/offline.html",
   "/en/care",

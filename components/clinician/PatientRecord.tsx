@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { Link } from "@/lib/i18n/navigation";
+import { BpTrendChart } from "@/components/clinician/BpTrendChart";
 import { CATEGORY_VISUAL } from "@/lib/clinical/presentation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { openSharedPatient, type PatientSummary, type SharedReading } from "@/lib/supabase/clinician";
@@ -46,7 +47,7 @@ export function PatientRecord({ reference, locale }: { reference: string; locale
   if (needsSignIn) return (
     <section className="card p-8 text-center">
       <h1 className="text-2xl font-bold text-ink-900">Sign in to open this share</h1>
-      <p className="mt-3 text-sm leading-relaxed text-ink-600">Only the verified clinician named by the patient can use this link.</p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-600">Only the clinician profile named by the patient can use this link.</p>
       <Link href="/account" onClick={() => rememberReturnPath(`/${locale}/portal/${reference}`)} className="brand-gradient mt-6 inline-flex min-h-14 items-center rounded-xl px-6 font-bold text-white">Sign in</Link>
     </section>
   );
@@ -82,6 +83,12 @@ export function PatientRecord({ reference, locale }: { reference: string; locale
           {summary.any_crisis && <p className="mt-5 flex gap-2 rounded-xl bg-[var(--color-risk-crisis-soft)] p-4 text-sm font-bold text-[var(--color-risk-crisis-ink)]"><AlertTriangle size={18} className="shrink-0" aria-hidden /> At least one crisis-threshold reading occurred in this window.</p>}
         </section>
       ) : <p className="card mt-5 p-6 text-ink-600">No readings were logged in the last 14 days.</p>}
+
+      {readings.length > 0 && (
+        <section className="card mt-5 p-6">
+          <BpTrendChart readings={readings} title="14-day blood-pressure trend" />
+        </section>
+      )}
 
       {readings.length > 0 && (
         <section className="card mt-5 overflow-hidden">

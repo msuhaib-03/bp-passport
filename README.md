@@ -1,8 +1,8 @@
-# HeartLine · BP Passport
+# BP Passport
 
 A local-first heart-care companion built on the existing bilingual, QR-first BP Passport platform for Pakistan.
 
-Start at `/en/care` for guided onboarding, a 10-question health check, the care dashboard, BP logging, prescribed-medicine reminders, reports, caregiver controls, clinician handoff, and the text/voice HeartLine assistant. The original audit, Passport, account, clinician, admin, consent, and Supabase workflows remain available.
+Start at `/en/care` for guided onboarding, a 10-question health check, the care dashboard, BP logging, prescribed-medicine reminders, reports, caregiver controls, clinician handoff, and the text/voice BP Passport assistant. The original audit, Passport, account, clinician, admin, consent, and Supabase workflows remain available.
 
 ---
 
@@ -34,9 +34,9 @@ npm run check        # lint + typecheck + full suite
 npm run build        # production build
 ```
 
-No environment variables are required for the offline fallback. To enable connected features, copy `.env.example` to `.env.local`, apply migrations `0001` through `0010`, and enable Supabase Anonymous Sign-Ins plus Email authentication. The first cloud upload requires explicit storage consent; local storage remains the offline fallback.
+No environment variables are required for the offline fallback. To enable connected features, copy `.env.example` to `.env.local`, apply migrations `0001` through `0012`, and enable Supabase Anonymous Sign-Ins plus Email authentication. The first cloud upload requires explicit storage consent; local storage remains the offline fallback.
 
-The HeartLine assistant also works without a model key through a deterministic, safety-filtered local coach. To enable generative replies, configure one provider on the server; emergency triage still runs first and generated output still passes through the DRAP guardrail:
+The BP Passport assistant also works without a model key through a deterministic, safety-filtered local coach. To enable generative replies, configure one provider on the server; emergency triage still runs first and generated output still passes through the DRAP guardrail:
 
 ```dotenv
 GROQ_API_KEY=
@@ -91,16 +91,21 @@ Patient and clinician record routes use the user's Supabase bearer token and
 database RLS. `SUPABASE_SERVICE_ROLE_KEY` is used only by the token-gated
 clinician review endpoint and must remain server-only.
 
-Before either deployment, apply migrations `0001` through `0010`, enable
+Before either deployment, apply migrations `0001` through `0012`, enable
 Supabase Authentication → Providers → Anonymous Sign-Ins and Email, and add the
-deployed `/en/account` and `/ur/account` URLs to the allowed redirect list.
+deployed `/en/account`, `/ur/account`, `/en/auth/confirmed`, and
+`/ur/auth/confirmed` URLs to the allowed redirect list. For Google sign-in, also
+enable the Google provider in Supabase Authentication and configure its OAuth
+credentials there.
 
 ### Current product scope
 
 The connected implementation covers email registration, sign-in, password
 recovery, anonymous-account upgrade, consent-gated passport synchronization,
-longitudinal readings, patient-controlled clinician sharing, a verified
-clinician portal, and a manual PMDC review queue at `/admin`. Research exports,
+longitudinal readings, patient-controlled clinician sharing, a pilot clinician
+portal, and a protected programme console at `/admin`. PMDC verification is
+temporarily optional because no integration is available; rejected and lapsed
+profiles remain blocked. Research exports,
 campaign management, and phone OTP remain future work.
 
 Available API routes:
@@ -224,7 +229,7 @@ app/
     passport/           dashboard, logging, 14-day mean ± SD
     account/            email registration, sign-in, recovery
     portal/             clinician registration and shared records
-    admin/              token-gated PMDC review queue
+    admin/              token-gated programme operations console
   api/v1/               authenticated patient, clinician, share, admin APIs
   manifest.ts           PWA manifest
   globals.css           design system tokens
@@ -281,7 +286,7 @@ The browser keeps working offline and merges its stable event IDs with the authe
 | Horizon | Scope |
 |---|---|
 | **H1 — now** | Landing · Heart Audit · results · Passport · bilingual · offline-capable |
-| **H2 — now** | Email accounts · consented cloud sync · clinician portal · PMDC review · expiring/revocable shares · Postgres + RLS |
+| **H2 — now** | Email/Google accounts · consented cloud sync · pilot clinician portal · expiring/revocable shares · Postgres + RLS |
 | **H2 next** | Phone OTP · automated PMDC reconciliation · research export review workflow |
 | **H3** | Bluetooth cuff sync · diagnostic lab booking · corporate analytics |
 | **H4** | Multi-tenant SaaS · HL7 FHIR · regional expansion |

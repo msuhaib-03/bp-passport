@@ -1,7 +1,7 @@
 export type CareLocale = "en" | "ur";
 
 /**
- * Patient-facing HeartLine copy that is shared by the onboarding, dashboard,
+ * Patient-facing BP Passport copy shared by onboarding, dashboard,
  * reports and assistant surfaces. English strings are intentionally used as
  * stable keys so clinical wording stays beside its Urdu equivalent and a
  * missing translation degrades safely to English instead of crashing a screen.
@@ -9,13 +9,13 @@ export type CareLocale = "en" | "ur";
 const URDU: Record<string, string> = {
   "Your everyday heart companion": "آپ کے دل کی صحت کا روزمرہ ساتھی",
   "Your heart. Your health. One clear next step.": "آپ کا دل۔ آپ کی صحت۔ اگلا واضح قدم۔",
-  "HeartLine helps you understand your health, save real readings, and take one small action at a time.": "ہارٹ لائن آپ کو اپنی صحت سمجھنے، حقیقی ریڈنگز محفوظ کرنے اور ایک وقت میں ایک چھوٹا قدم اٹھانے میں مدد دیتی ہے۔",
+  "BP Passport helps you understand your health, save real readings, and take one small action at a time.": "بی پی پاسپورٹ آپ کو اپنی صحت سمجھنے، حقیقی ریڈنگز محفوظ کرنے اور ایک وقت میں ایک چھوٹا قدم اٹھانے میں مدد دیتا ہے۔",
   "1. Understand": "1۔ سمجھیں",
   "One short health check.": "ایک مختصر صحت چیک۔",
   "2. Guide": "2۔ رہنمائی",
-  "HeartLine shows the next step.": "ہارٹ لائن اگلا قدم دکھاتی ہے۔",
+  "BP Passport shows the next step.": "بی پی پاسپورٹ اگلا قدم دکھاتا ہے۔",
   "Start your health check": "اپنا صحت چیک شروع کریں",
-  "Ask HeartLine first": "پہلے ہارٹ لائن سے پوچھیں",
+  "Ask BP Passport first": "پہلے بی پی پاسپورٹ سے پوچھیں",
   "Back": "پیچھے",
   "Secure access": "محفوظ رسائی",
   "Choose a simple way in.": "داخل ہونے کا آسان طریقہ منتخب کریں۔",
@@ -111,7 +111,7 @@ const URDU: Record<string, string> = {
   "Reading saved on this device.": "ریڈنگ اس آلے پر محفوظ ہو گئی۔",
   "Saved on this device. Cloud sync will retry when your account is available.": "اس آلے پر محفوظ ہے۔ اکاؤنٹ دستیاب ہونے پر کلاؤڈ سنک دوبارہ کوشش کرے گا۔",
   "Recent readings": "حالیہ ریڈنگز",
-  "Reminders for medicine already prescribed to you. HeartLine never recommends or changes treatment.": "صرف پہلے سے تجویز کردہ دوا کی یاد دہانیاں۔ ہارٹ لائن علاج تجویز یا تبدیل نہیں کرتی۔",
+  "Reminders for medicine already prescribed to you. BP Passport never recommends or changes treatment.": "صرف پہلے سے تجویز کردہ دوا کی یاد دہانیاں۔ بی پی پاسپورٹ علاج تجویز یا تبدیل نہیں کرتا۔",
   "Add a prescribed reminder": "تجویز کردہ دوا کی یاد دہانی شامل کریں",
   "Label from your prescription": "نسخے پر درج نام",
   "e.g. Morning tablet": "مثلاً صبح کی گولی",
@@ -135,6 +135,7 @@ const URDU: Record<string, string> = {
   "Movement": "حرکت",
   "Not tracked yet": "ابھی ریکارڈ نہیں",
   "Print / save PDF": "پرنٹ / PDF محفوظ کریں",
+  "Share report on WhatsApp": "رپورٹ واٹس ایپ پر شیئر کریں",
   "Open full Passport": "مکمل پاسپورٹ کھولیں",
   "Choose what a trusted person may see. No messages are sent automatically.": "منتخب کریں کہ قابلِ اعتماد شخص کیا دیکھ سکتا ہے۔ کوئی پیغام خودکار طور پر نہیں بھیجا جاتا۔",
   "Your care circle": "آپ کا نگہداشت حلقہ",
@@ -160,7 +161,7 @@ const URDU: Record<string, string> = {
   "Clinical operations": "طبی انتظام",
   "The existing admin verification queue remains protected by the server-side admin token.": "موجودہ ایڈمن تصدیقی قطار سرور کے ایڈمن ٹوکن سے محفوظ رہتی ہے۔",
   "Open admin review": "ایڈمن جائزہ کھولیں",
-  "HeartLine assistant": "ہارٹ لائن اسسٹنٹ",
+  "BP Passport assistant": "بی پی پاسپورٹ اسسٹنٹ",
   "Ask by text or voice. Emergency messages are screened before any AI provider is called.": "متن یا آواز سے پوچھیں۔ کسی AI فراہم کنندہ سے پہلے ہنگامی پیغامات کی جانچ ہوتی ہے۔",
   "I can see your latest saved BP reading. Ask what it means or what to do next.": "میں آپ کی تازہ محفوظ بلڈ پریشر ریڈنگ دیکھ سکتا ہوں۔ اس کا مطلب یا اگلا قدم پوچھیں۔",
   "I'm here to help with your next heart-health step. You can type or speak.": "میں دل کی صحت کے اگلے قدم میں مدد کے لیے حاضر ہوں۔ آپ لکھ یا بول سکتے ہیں۔",
@@ -171,7 +172,7 @@ const URDU: Record<string, string> = {
   "My medicines": "میری ادویات",
   "What should I eat?": "مجھے کیا کھانا چاہیے؟",
   "My report": "میری رپورٹ",
-  "Ask HeartLine": "ہارٹ لائن سے پوچھیں",
+  "Ask BP Passport": "بی پی پاسپورٹ سے پوچھیں",
   "Ask or speak…": "لکھیں یا بولیں…",
   "Stop listening": "سننا بند کریں",
   "Speak your question": "اپنا سوال بولیں",
