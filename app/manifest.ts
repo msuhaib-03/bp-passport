@@ -17,14 +17,20 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/en/care",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
-    background_color: "#f4f7fa",
-    theme_color: "#0c1c30",
+    orientation: "any",
+    background_color: "#edf4ef",
+    theme_color: "#078679",
     categories: ["health", "medical", "lifestyle"],
     lang: "en",
     dir: "ltr",
     icons: [
-      { src: "/logo-full.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+    shortcuts: [
+      { name: "My care", short_name: "Care", url: "/en/care", icons: [{ src: "/pwa-192.png", sizes: "192x192" }] },
+      { name: "اردو", short_name: "اردو", url: "/ur/care", icons: [{ src: "/pwa-192.png", sizes: "192x192" }] },
     ],
   };
 }

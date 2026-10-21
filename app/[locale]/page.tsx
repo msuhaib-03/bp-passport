@@ -43,8 +43,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
 
   return (
     <main className="min-h-dvh overflow-x-hidden bg-[#edf4ef] px-0 sm:px-5 sm:py-5">
-      <section className="mx-auto min-h-dvh max-w-[610px] overflow-hidden bg-white px-5 py-5 shadow-[0_0_50px_rgb(23_65_53/0.08)] sm:min-h-0 sm:rounded-[2rem] sm:px-12 sm:py-8">
-        <header className="flex items-center justify-between gap-4">
+      <section className="mx-auto min-h-dvh w-full max-w-[1440px] overflow-hidden bg-white px-5 py-5 sm:min-h-0 sm:rounded-[2rem] sm:px-12 sm:py-8">
+        <header className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <span className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-[#078679]">
             <Image src="/heartline-logo.png" width={42} height={42} alt="" priority />
             <span>HeartLine<small className="block text-[9px] font-extrabold tracking-[.2em] text-[#81908b] uppercase">by PharmEvo</small></span>
@@ -55,29 +55,28 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </div>
         </header>
 
-        <section className="pt-12 sm:pt-16">
-          <p className="text-xs font-extrabold tracking-[.16em] text-[#6b817b] uppercase">{copy.eyebrow}</p>
-          <h1 className="mt-3 font-serif text-[clamp(2.35rem,10vw,4.5rem)] leading-[.96] tracking-[-.055em] text-[#063a3d]">{copy.title}</h1>
-          <p className="mt-5 max-w-lg leading-7 text-[#5f7570]">{copy.subtitle}</p>
-
-          <div className="relative mt-6 aspect-[16/8.3] overflow-hidden rounded-[1.6rem] bg-[#f4e8cd]">
-            <Image src="/heartline-bp-guidance.png" fill sizes="(max-width: 640px) 92vw, 510px" className="object-cover" alt="A man calmly checking his blood pressure at home" priority />
+        <section className="mx-auto grid max-w-7xl items-center gap-8 pt-12 sm:pt-16 lg:grid-cols-[.85fr_1.15fr] lg:gap-16">
+          <div>
+            <p className="text-xs font-extrabold tracking-[.16em] text-[#6b817b] uppercase">{copy.eyebrow}</p>
+            <h1 className="mt-3 font-serif text-[clamp(2.5rem,5.5vw,5.4rem)] leading-[.96] tracking-[-.055em] text-[#063a3d]">{copy.title}</h1>
+            <p className="mt-5 max-w-lg leading-7 text-[#5f7570]">{copy.subtitle}</p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.understand}</strong>{copy.understandBody}</div>
+              <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.guide}</strong>{copy.guideBody}</div>
+            </div>
+            <Link href="/care" className="mt-7 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#078679] px-6 font-extrabold text-white shadow-[0_12px_25px_rgb(7_134_121/0.2)]">{copy.start} <ArrowRight size={19} className="rtl:rotate-180" /></Link>
+            <Link href="/care" className="mt-3 flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-[#cce1d8] px-6 font-bold text-[#078679]"><Bot size={18} /> {copy.ask}</Link>
           </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.understand}</strong>{copy.understandBody}</div>
-            <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.guide}</strong>{copy.guideBody}</div>
+          <div className="relative aspect-[4/3] min-h-[24rem] overflow-hidden rounded-[1.8rem] bg-[#f4e8cd]">
+            <Image src="/heartline-bp-guidance.png" fill sizes="(max-width: 1024px) 92vw, 680px" className="object-cover" alt="A man calmly checking his blood pressure at home" priority />
           </div>
-
-          <Link href="/care" className="mt-7 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#078679] px-6 font-extrabold text-white shadow-[0_12px_25px_rgb(7_134_121/0.2)]">{copy.start} <ArrowRight size={19} className="rtl:rotate-180" /></Link>
-          <Link href="/care" className="mt-3 flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-[#cce1d8] px-6 font-bold text-[#078679]"><Bot size={18} /> {copy.ask}</Link>
         </section>
 
-        <section className="mt-9 grid gap-3 sm:grid-cols-3">
+        <section className="mx-auto mt-10 grid max-w-7xl gap-3 sm:grid-cols-3">
           {copy.features.map(({ icon: Icon, title, body }) => <div key={title} className="rounded-2xl border border-[#deebe5] p-4"><Icon size={20} className="text-[#078679]" /><strong className="mt-3 block text-sm text-[#093c3d]">{title}</strong><p className="mt-1 text-xs leading-5 text-[#6b7e79]">{body}</p></div>)}
         </section>
 
-        <footer className="mt-8 flex gap-2 border-t border-[#e2ece8] pt-5 text-xs leading-5 text-[#758781]"><ShieldCheck size={16} className="mt-0.5 shrink-0" /><p>{copy.disclaimer}</p></footer>
+        <footer className="mx-auto mt-8 flex max-w-7xl gap-2 border-t border-[#e2ece8] pt-5 text-xs leading-5 text-[#758781]"><ShieldCheck size={16} className="mt-0.5 shrink-0" /><p>{copy.disclaimer}</p></footer>
       </section>
     </main>
   );

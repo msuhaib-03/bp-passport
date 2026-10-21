@@ -17,6 +17,8 @@ import {
   HeartPulse,
   Home,
   LockKeyhole,
+  LogIn,
+  LogOut,
   Mic,
   Pill,
   Printer,
@@ -31,7 +33,18 @@ import {
 import { BpEntry } from "@/components/audit/BpEntry";
 import { SharePanel } from "@/components/passport/SharePanel";
 import { LocaleSwitch } from "@/components/ui/LocaleSwitch";
-import { Link } from "@/lib/i18n/navigation";
+import {
+  CareAssistantPanel,
+  CareCaregiverView,
+  CareDoctorView,
+  CareHealthView,
+  CareHomeView,
+  CareMedicinesView,
+  CareProgrammeView,
+  CareReportsView,
+} from "@/components/care/CareViews";
+import { Link, useRouter } from "@/lib/i18n/navigation";
+import { careText, type CareLocale } from "@/lib/care-copy";
 import {
   type CareAssessment,
   type CareState,
@@ -42,6 +55,7 @@ import {
 } from "@/lib/care";
 import { assess, summariseSeries, type BpReading } from "@/lib/clinical/bp-classification";
 import { appendReading, readPassport, type Passport } from "@/lib/storage";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { isCloudPersistenceConfigured, syncReading } from "@/lib/supabase/persistence";
 
 import styles from "./heartline-care.module.css";
@@ -64,7 +78,7 @@ interface SpeechRecognitionLike {
   stop(): void;
   onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
 }
 
 const ASSESSMENT: Array<{
@@ -106,12 +120,13 @@ function Brand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function displayCategory(category: ReturnType<typeof assess>["category"]): string {
-  return ({ optimal: "Optimal range", normal: "Normal range", high_normal: "High-normal range", grade_1: "Grade 1 range", grade_2: "Grade 2 range" })[category];
+function displayCategory(category: ReturnType<typeof assess>["category"], locale: CareLocale = "en"): string {
+  return careText(locale, ({ optimal: "Optimal range", normal: "Normal range", high_normal: "High-normal range", grade_1: "Grade 1 range", grade_2: "Grade 2 range" })[category]);
 }
 
 export function HeartLineCare() {
   const locale = useLocale() === "ur" ? "ur" : "en";
+  const t = (text: string) => careText(locale, text);
   const [ready, setReady] = useState(false);
   const [intro, setIntro] = useState<IntroScreen>("welcome");
   const [view, setView] = useState<AppView>("home");
@@ -165,18 +180,18 @@ export function HeartLineCare() {
           <section className={styles.welcome}>
             <div className={styles.welcomeTop}><Brand /><LocaleSwitch /></div>
             <div className={styles.hero}>
-              <p className={styles.eyebrow}>Your everyday heart companion</p>
-              <h1 className={styles.display}>Your heart. Your health. One clear next step.</h1>
-              <p className={styles.lede}>HeartLine helps you understand your health, save real readings, and take one small action at a time.</p>
+              <p className={styles.eyebrow}>{t("Your everyday heart companion")}</p>
+              <h1 className={styles.display}>{t("Your heart. Your health. One clear next step.")}</h1>
+              <p className={styles.lede}>{t("HeartLine helps you understand your health, save real readings, and take one small action at a time.")}</p>
               <div className={styles.heroImage}>
                 <Image src="/heartline-bp-guidance.png" fill sizes="(max-width: 600px) 92vw, 520px" alt="A man calmly checking his blood pressure at home" priority />
               </div>
               <div className={styles.journey}>
-                <div className={styles.journeyItem}><strong>1. Understand</strong>One short health check.</div>
-                <div className={styles.journeyItem}><strong>2. Guide</strong>HeartLine shows the next step.</div>
+                <div className={styles.journeyItem}><strong>{t("1. Understand")}</strong>{t("One short health check.")}</div>
+                <div className={styles.journeyItem}><strong>{t("2. Guide")}</strong>{t("HeartLine shows the next step.")}</div>
               </div>
-              <button className={styles.primary} onClick={() => setIntro("access")}>Start your health check <ArrowRight size={18} /></button>
-              <button className={styles.secondary} onClick={() => { setIntro("dashboard"); setView("assistant"); }}><Bot size={18} /> Ask HeartLine first</button>
+              <button className={styles.primary} onClick={() => setIntro("access")}>{t("Start your health check")} <ArrowRight size={18} /></button>
+              <button className={styles.secondary} onClick={() => { setIntro("dashboard"); setView("assistant"); }}><Bot size={18} /> {t("Ask HeartLine first")}</button>
             </div>
           </section>
         </main>
@@ -187,28 +202,28 @@ export function HeartLineCare() {
       return (
         <main className={styles.shell}>
           <section className={styles.flow}>
-            <div className={styles.flowHeader}><button className={styles.textButton} onClick={() => setIntro("welcome")}><ArrowLeft size={16} /> Back</button><LocaleSwitch /></div>
+            <div className={styles.flowHeader}><button className={styles.textButton} onClick={() => setIntro("welcome")}><ArrowLeft size={16} /> {t("Back")}</button><LocaleSwitch /></div>
             <div className={styles.flowBody}>
               <Brand />
-              <p className={styles.eyebrow} style={{ marginTop: "2rem" }}>Secure access</p>
-              <h1 className={styles.flowTitle}>Choose a simple way in.</h1>
-              <p className={styles.flowText}>Use a clinic QR, your existing Patient ID, or the clearly labelled biometric demonstration.</p>
+              <p className={styles.eyebrow} style={{ marginTop: "2rem" }}>{t("Secure access")}</p>
+              <h1 className={styles.flowTitle}>{t("Choose a simple way in.")}</h1>
+              <p className={styles.flowText}>{t("Use a clinic QR, your existing Patient ID, or the clearly labelled biometric demonstration.")}</p>
               <div className={styles.choiceGrid}>
                 {([
                   ["qr", "Scan QR", QrCode],
                   ["patient_id", "Patient ID", LockKeyhole],
                   ["biometric_demo", "Biometric demo", Fingerprint],
                 ] as const).map(([id, label, Icon]) => (
-                  <button key={id} className={`${styles.choice} ${care.accessMethod === id ? styles.choiceActive : ""}`} onClick={() => updateCare({ accessMethod: id })}><Icon size={21} />{label}</button>
+                  <button key={id} className={`${styles.choice} ${care.accessMethod === id ? styles.choiceActive : ""}`} onClick={() => updateCare({ accessMethod: id })}><Icon size={21} />{t(label)}</button>
                 ))}
               </div>
               {care.accessMethod === "patient_id" && (
-                <label className={styles.field}>Patient ID<input defaultValue={passport?.id ?? ""} placeholder="PE-XXXX" /></label>
+                <label className={styles.field}>{t("Patient ID")}<input defaultValue={passport?.id ?? ""} placeholder="PE-XXXX" /></label>
               )}
-              {care.accessMethod === "qr" && <p className={styles.note}><QrCode size={16} />Clinic campaign codes in QR links are kept with the existing Passport. Camera scanning can be connected to a clinic device later.</p>}
-              {care.accessMethod === "biometric_demo" && <p className={styles.note}><Fingerprint size={16} />Demonstration only. No fingerprint or face data is captured or stored.</p>}
-              <div className={styles.flowActions}><button disabled={!care.accessMethod} className={styles.primary} onClick={() => setIntro("profile")}>Continue <ArrowRight size={18} /></button></div>
-              <p className={styles.note}><ShieldCheck size={16} />Your care profile works locally on this device. Sign in later to use the existing encrypted cloud sync and clinician sharing.</p>
+              {care.accessMethod === "qr" && <p className={styles.note}><QrCode size={16} />{t("Clinic campaign codes in QR links are kept with the existing Passport. Camera scanning can be connected to a clinic device later.")}</p>}
+              {care.accessMethod === "biometric_demo" && <p className={styles.note}><Fingerprint size={16} />{t("Demonstration only. No fingerprint or face data is captured or stored.")}</p>}
+              <div className={styles.flowActions}><button disabled={!care.accessMethod} className={styles.primary} onClick={() => setIntro("profile")}>{t("Continue")} <ArrowRight size={18} /></button></div>
+              <p className={styles.note}><ShieldCheck size={16} />{t("Your care profile works locally on this device. Sign in later to use the existing encrypted cloud sync and clinician sharing.")}</p>
             </div>
           </section>
         </main>
@@ -219,18 +234,18 @@ export function HeartLineCare() {
       return (
         <main className={styles.shell}>
           <section className={styles.flow}>
-            <div className={styles.flowHeader}><button className={styles.textButton} onClick={() => setIntro("access")}><ArrowLeft size={16} /> Back</button><LocaleSwitch /></div>
+            <div className={styles.flowHeader}><button className={styles.textButton} onClick={() => setIntro("access")}><ArrowLeft size={16} /> {t("Back")}</button><LocaleSwitch /></div>
             <div className={styles.progress}><span style={{ width: "50%" }} /></div>
             <div className={styles.flowBody} style={{ paddingTop: "3rem" }}>
-              <p className={styles.eyebrow}>Your profile</p>
-              <h1 className={styles.flowTitle}>A little about you.</h1>
-              <p className={styles.flowText}>This personalises your dashboard. Only your name is required.</p>
-              <label className={styles.field}>What should we call you?<input value={care.displayName} maxLength={50} autoComplete="name" onChange={(event) => setCare((current) => ({ ...current, displayName: event.target.value }))} placeholder="Your first name" /></label>
+              <p className={styles.eyebrow}>{t("Your profile")}</p>
+              <h1 className={styles.flowTitle}>{t("A little about you.")}</h1>
+              <p className={styles.flowText}>{t("This personalises your dashboard. Only your name is required.")}</p>
+              <label className={styles.field}>{t("What should we call you?")}<input value={care.displayName} maxLength={50} autoComplete="name" onChange={(event) => setCare((current) => ({ ...current, displayName: event.target.value }))} placeholder={t("Your first name")} /></label>
               <div className={styles.fieldRow}>
-                <label className={styles.field}>Age<input type="number" min={18} max={110} value={care.age ?? ""} onChange={(event) => setCare((current) => ({ ...current, age: event.target.value ? Number(event.target.value) : undefined }))} /></label>
-                <label className={styles.field}>Gender<select value={care.gender ?? "prefer_not_to_say"} onChange={(event) => setCare((current) => ({ ...current, gender: event.target.value as CareState["gender"] }))}><option value="prefer_not_to_say">Prefer not to say</option><option value="woman">Woman</option><option value="man">Man</option><option value="other">Other</option></select></label>
+                <label className={styles.field}>{t("Age")}<input type="number" min={18} max={110} value={care.age ?? ""} onChange={(event) => setCare((current) => ({ ...current, age: event.target.value ? Number(event.target.value) : undefined }))} /></label>
+                <label className={styles.field}>{t("Gender")}<select value={care.gender ?? "prefer_not_to_say"} onChange={(event) => setCare((current) => ({ ...current, gender: event.target.value as CareState["gender"] }))}><option value="prefer_not_to_say">{t("Prefer not to say")}</option><option value="woman">{t("Woman")}</option><option value="man">{t("Man")}</option><option value="other">{t("Other")}</option></select></label>
               </div>
-              <div className={styles.flowActions}><button disabled={!care.displayName.trim()} className={styles.primary} onClick={() => { updateCare({ displayName: care.displayName.trim() }); setIntro("assessment"); }}>Start the 10 questions <ArrowRight size={18} /></button></div>
+              <div className={styles.flowActions}><button disabled={!care.displayName.trim()} className={styles.primary} onClick={() => { updateCare({ displayName: care.displayName.trim() }); setIntro("assessment"); }}>{t("Start the 10 questions")} <ArrowRight size={18} /></button></div>
             </div>
           </section>
         </main>
@@ -242,15 +257,15 @@ export function HeartLineCare() {
       return (
         <main className={styles.shell}>
           <section className={styles.flow}>
-            <div className={styles.flowHeader}><button className={styles.textButton} onClick={() => question ? setQuestion(question - 1) : setIntro("profile")}><ArrowLeft size={16} /> Back</button><span className={styles.subtle}>{question + 1} of {ASSESSMENT.length}</span></div>
+            <div className={styles.flowHeader}><button className={styles.textButton} onClick={() => question ? setQuestion(question - 1) : setIntro("profile")}><ArrowLeft size={16} /> {t("Back")}</button><span className={styles.subtle}>{question + 1} / {ASSESSMENT.length}</span></div>
             <div className={styles.progress}><span style={{ width: `${((question + 1) / ASSESSMENT.length) * 100}%` }} /></div>
-            <p className={styles.questionCount}>Health check</p>
-            <h1 className={styles.flowTitle}>{item.question}</h1>
-            <p className={styles.flowText}>Choose the closest answer. This is education and planning support, not a diagnosis.</p>
+            <p className={styles.questionCount}>{t("Health check")}</p>
+            <h1 className={styles.flowTitle}>{t(item.question)}</h1>
+            <p className={styles.flowText}>{t("Choose the closest answer. This is education and planning support, not a diagnosis.")}</p>
             <div className={styles.answerList}>
-              {item.options.map((option) => <button key={option.value} className={styles.answer} onClick={() => finishAssessment(option.value)}>{option.label}<ChevronRight size={18} style={{ float: "right" }} /></button>)}
+              {item.options.map((option) => <button key={option.value} className={styles.answer} onClick={() => finishAssessment(option.value)}>{t(option.label)}<ChevronRight size={18} style={{ float: "right" }} /></button>)}
             </div>
-            {showEmergency && <div className={styles.urgent}><strong>Get urgent help now.</strong><p>Call Rescue 1122 or go to the nearest emergency department. Do not drive yourself. This check cannot assess an emergency.</p></div>}
+            {showEmergency && <div className={styles.urgent}><strong>{t("Get urgent help now.")}</strong><p>{t("Call Rescue 1122 or go to the nearest emergency department. Do not drive yourself. This check cannot assess an emergency.")}</p></div>}
           </section>
         </main>
       );
@@ -263,17 +278,17 @@ export function HeartLineCare() {
           <section className={styles.flow}>
             <div className={styles.flowHeader}><Brand /><LocaleSwitch /></div>
             <div className={styles.flowBody} style={{ paddingTop: "3rem" }}>
-              <p className={styles.eyebrow}>Your health snapshot</p>
-              <h1 className={styles.flowTitle}>Your starting point is ready.</h1>
-              <p className={styles.flowText}>This short check found {focusCount} area{focusCount === 1 ? "" : "s"} worth discussing or working on. It is not a diagnosis.</p>
+              <p className={styles.eyebrow}>{t("Your health snapshot")}</p>
+              <h1 className={styles.flowTitle}>{t("Your starting point is ready.")}</h1>
+              <p className={styles.flowText}>{locale === "ur" ? `اس مختصر چیک میں ${focusCount} پہلو سامنے آئے جن پر بات یا کام کیا جا سکتا ہے۔ یہ تشخیص نہیں۔` : `This short check found ${focusCount} area${focusCount === 1 ? "" : "s"} worth discussing or working on. It is not a diagnosis.`}</p>
               <section className={styles.heroCard}>
-                <p className={styles.eyebrow} style={{ color: "#c8eee7" }}>Recommended next step</p>
-                <h2>Save a blood-pressure reading.</h2>
-                <p>A real measurement gives your dashboard a useful baseline. If you do not have a cuff now, you can add one later.</p>
+                <p className={styles.eyebrow} style={{ color: "#c8eee7" }}>{t("Recommended next step")}</p>
+                <h2>{t("Save a blood-pressure reading.")}</h2>
+                <p>{t("A real measurement gives your dashboard a useful baseline. If you do not have a cuff now, you can add one later.")}</p>
               </section>
-              {showEmergency && <div className={styles.urgent}><strong>Do not wait for the dashboard.</strong><p>For current chest pain, severe breathlessness, fainting, or sudden weakness, call Rescue 1122 or go to emergency care now.</p></div>}
-              <div className={styles.flowActions}><button className={styles.primary} onClick={() => setIntro("dashboard")}>Open my dashboard <ArrowRight size={18} /></button></div>
-              <button className={styles.secondary} onClick={() => { setQuestion(0); setIntro("assessment"); }}>Review my answers</button>
+              {showEmergency && <div className={styles.urgent}><strong>{t("Do not wait for the dashboard.")}</strong><p>{t("For current chest pain, severe breathlessness, fainting, or sudden weakness, call Rescue 1122 or go to emergency care now.")}</p></div>}
+              <div className={styles.flowActions}><button className={styles.primary} onClick={() => setIntro("dashboard")}>{t("Open my dashboard")} <ArrowRight size={18} /></button></div>
+              <button className={styles.secondary} onClick={() => { setQuestion(0); setIntro("assessment"); }}>{t("Review my answers")}</button>
             </div>
           </section>
         </main>
@@ -312,45 +327,94 @@ function Dashboard({
   updateCare: (change: Partial<CareState>) => void;
 }) {
   const latest = passport?.readings.at(-1) ?? null;
+  const t = (text: string) => careText(locale, text);
+  const [signedIn, setSignedIn] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const client = getSupabaseBrowserClient();
+    if (!client) return;
+    void client.auth.getSession().then(({ data }) => {
+      setSignedIn(Boolean(data.session && !data.session.user.is_anonymous));
+    });
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session && !session.user.is_anonymous));
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function logout() {
+    const client = getSupabaseBrowserClient();
+    if (!client || loggingOut) return;
+    setLoggingOut(true);
+    try {
+      const { data } = await client.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (accessToken) {
+        await fetch("/api/v1/auth/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }).catch(() => null);
+      }
+      await client.auth.signOut({ scope: "global" });
+      router.replace("/account");
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <main className={`${styles.shell} ${styles.app}`}>
       <aside className={styles.sidebar}>
         <Brand />
-        <p className={styles.navLabel}>My care</p>
+        <p className={styles.navLabel}>{t("My care")}</p>
         <nav className={styles.nav} aria-label="Care sections">
-          {NAV.map(({ id, label, icon: Icon }) => <button key={id} className={`${styles.navButton} ${view === id ? styles.navActive : ""}`} onClick={() => setView(id)}><Icon size={18} />{label}</button>)}
+          {NAV.map(({ id, label, icon: Icon }) => <button key={id} className={`${styles.navButton} ${view === id ? styles.navActive : ""}`} onClick={() => setView(id)}><Icon size={18} />{t(label)}</button>)}
         </nav>
-        <div className={styles.profile}><strong>{care.displayName || "Patient"}</strong><br />{passport?.id ?? "Local care profile"}</div>
+        <div className={styles.profile}>
+          <strong>{care.displayName || t("Patient")}</strong><br />{passport?.id ?? t("Local care profile")}
+          {signedIn ? (
+            <button type="button" className={styles.sessionButton} onClick={() => void logout()} disabled={loggingOut}>
+              <LogOut size={16} />{loggingOut ? t("Signing out…") : t("Sign out everywhere")}
+            </button>
+          ) : (
+            <Link href="/account" className={styles.sessionButton}><LogIn size={16} />{t("Sign in")}</Link>
+          )}
+        </div>
       </aside>
 
       <section className={styles.main}>
         <div className={styles.mainInner}>
           <div className={styles.pageHeader}>
             <div><p className={styles.eyebrow}>{new Intl.DateTimeFormat(locale === "ur" ? "ur-PK" : "en-PK", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</p></div>
-            <LocaleSwitch />
+            <div className={styles.headerActions}>
+              <LocaleSwitch />
+              {signedIn && <button type="button" className={styles.headerLogout} onClick={() => void logout()} disabled={loggingOut} aria-label={t("Sign out everywhere")}><LogOut size={18} /></button>}
+            </div>
           </div>
-          {view === "home" && <HomeView care={care} passport={passport} setView={setView} />}
-          {view === "health" && <HealthView passport={passport} setPassport={setPassport} />}
-          {view === "medicines" && <MedicinesView care={care} updateCare={updateCare} />}
-          {view === "reports" && <ReportsView passport={passport} />}
-          {view === "caregiver" && <CaregiverView care={care} updateCare={updateCare} />}
-          {view === "doctor" && <DoctorView passport={passport} />}
-          {view === "programme" && <ProgrammeView passport={passport} care={care} />}
-          {view === "assistant" && <div className={styles.sectionHead}><h1>HeartLine assistant</h1><p className={styles.subtle}>Ask by text or voice. Emergency messages are screened before any AI provider is called.</p><div className={styles.card} style={{ marginTop: "1rem", minHeight: "32rem" }}><AssistantPanel locale={locale} latest={latest} hasMedicationReminder={care.medications.some((item) => item.active)} expanded /></div></div>}
+          {view === "home" && <CareHomeView locale={locale} care={care} passport={passport} setView={setView} />}
+          {view === "health" && <CareHealthView locale={locale} passport={passport} setPassport={setPassport} />}
+          {view === "medicines" && <CareMedicinesView locale={locale} care={care} updateCare={updateCare} />}
+          {view === "reports" && <CareReportsView locale={locale} passport={passport} />}
+          {view === "caregiver" && <CareCaregiverView locale={locale} care={care} updateCare={updateCare} />}
+          {view === "doctor" && <CareDoctorView locale={locale} passport={passport} />}
+          {view === "programme" && <CareProgrammeView locale={locale} passport={passport} care={care} />}
+          {view === "assistant" && <div className={styles.sectionHead}><h1>{t("HeartLine assistant")}</h1><p className={styles.subtle}>{t("Ask by text or voice. Emergency messages are screened before any AI provider is called.")}</p><div className={styles.card} style={{ marginTop: "1rem", minHeight: "32rem" }}><CareAssistantPanel locale={locale} latest={latest} hasMedicationReminder={care.medications.some((item) => item.active)} expanded /></div></div>}
         </div>
       </section>
 
-      <aside className={styles.assistant}><AssistantPanel locale={locale} latest={latest} hasMedicationReminder={care.medications.some((item) => item.active)} /></aside>
+      <aside className={styles.assistant}><CareAssistantPanel locale={locale} latest={latest} hasMedicationReminder={care.medications.some((item) => item.active)} /></aside>
       <nav className={styles.mobileNav} aria-label="Mobile care sections">
         {([
           ["home", "Home", Home], ["health", "Health", HeartPulse], ["medicines", "Meds", Pill], ["reports", "Reports", FileText], ["assistant", "Ask", Bot],
-        ] as const).map(([id, label, Icon]) => <button key={id} className={`${styles.navButton} ${view === id ? styles.navActive : ""}`} onClick={() => setView(id)}><Icon size={17} />{label}</button>)}
+        ] as const).map(([id, label, Icon]) => <button key={id} className={`${styles.navButton} ${view === id ? styles.navActive : ""}`} onClick={() => setView(id)}><Icon size={17} />{t(label)}</button>)}
       </nav>
     </main>
   );
 }
 
+/* eslint-disable @typescript-eslint/no-unused-vars -- superseded during the care-dashboard migration; retained temporarily for safe visual comparison */
 function HomeView({ care, passport, setView }: { care: CareState; passport: Passport | null; setView: (view: AppView) => void }) {
   const latest = passport?.readings.at(-1);
   const medicineDue = care.medications.find((item) => item.active && item.checkedOn !== todayKey());

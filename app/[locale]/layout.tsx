@@ -5,6 +5,8 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
 import { DIRECTION, routing, type Locale } from "@/lib/i18n/routing";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
+import { GlobalLocaleSwitch } from "@/components/ui/GlobalLocaleSwitch";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -25,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0c1c30",
+  themeColor: "#078679",
   width: "device-width",
   initialScale: 1,
   // Zoom is never disabled. Users over 50 pinch to read, and locking scale is
@@ -76,6 +78,8 @@ export default async function LocaleLayout({
             Skip to content
           </a>
           <div id="main">{children}</div>
+          <GlobalLocaleSwitch />
+          <PwaRegister />
         </NextIntlClientProvider>
       </body>
     </html>

@@ -12,7 +12,7 @@ export interface AssistantContext {
 export interface AssistantReply {
   text: string;
   urgent: boolean;
-  provider: "local" | "groq" | "anthropic";
+  provider: "local" | "gemini" | "groq" | "anthropic";
 }
 
 export function emergencyReply(locale: Locale): string {

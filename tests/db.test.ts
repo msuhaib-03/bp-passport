@@ -78,6 +78,7 @@ describe("migrations", () => {
       "patients",
       "readings",
       "referrals",
+      "revoked_sessions",
     ]);
   });
 

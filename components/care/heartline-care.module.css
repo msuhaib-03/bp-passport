@@ -26,20 +26,21 @@
 .byline { display: block; margin-top: -.15rem; color: #7c8f89; font-size: .62rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
 
 .welcome {
-  width: min(100%, 37rem);
+  width: 100%;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 1.25rem clamp(1.15rem, 5vw, 3.2rem) 1.75rem;
+  padding: 1.25rem clamp(1.15rem, 4vw, 4.5rem) 2.5rem;
   background: rgba(255,255,255,.93);
-  box-shadow: 0 0 50px rgba(19, 59, 48, .08);
 }
 
-.welcomeTop { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.hero { padding-top: clamp(2.3rem, 8vh, 5rem); }
+.welcomeTop { display: flex; max-width: 78rem; margin: 0 auto; align-items: center; justify-content: space-between; gap: 1rem; }
+.hero { display: grid; max-width: 78rem; margin: 0 auto; grid-template-columns: minmax(18rem, .85fr) minmax(28rem, 1.15fr); grid-auto-rows: auto; column-gap: clamp(2rem, 6vw, 6rem); align-items: start; padding-top: clamp(2.3rem, 8vh, 5rem); }
+.hero > .eyebrow, .hero > .display, .hero > .lede, .hero > .journey, .hero > .primary, .hero > .secondary { grid-column: 1; }
+.hero > .heroImage { grid-column: 2; grid-row: 1 / span 7; align-self: stretch; }
 .eyebrow { color: #687d78; font-size: .78rem; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
-.display { margin-top: .6rem; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.6rem, 9vw, 4.2rem); line-height: .98; letter-spacing: -.055em; color: #063a3d; }
+.display { margin-top: .6rem; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.8rem, 5.2vw, 5rem); line-height: .98; letter-spacing: -.055em; color: #063a3d; }
 .lede { max-width: 31rem; margin-top: 1rem; color: var(--muted); font-size: 1rem; line-height: 1.65; }
-.heroImage { position: relative; width: 100%; aspect-ratio: 16 / 8.2; margin-top: 1.35rem; overflow: hidden; border-radius: 1.5rem; background: #f4e8cd; }
+.heroImage { position: relative; width: 100%; min-height: 30rem; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 1.5rem; background: #f4e8cd; }
 .heroImage img { width: 100%; height: 100%; object-fit: cover; }
 .journey { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: 1.25rem 0 1.4rem; }
 .journeyItem { border: 1px solid #d7e6df; border-radius: .9rem; padding: .72rem .8rem; background: #f3faf7; font-size: .72rem; color: var(--muted); }
@@ -57,7 +58,7 @@
 .secondary { margin-top: .65rem; color: var(--green); background: white; border: 1px solid #cce0d8; }
 .textButton { color: var(--green); border: 0; background: transparent; font: inherit; font-weight: 750; cursor: pointer; }
 
-.flow { width: min(100%, 39rem); min-height: 100dvh; margin: 0 auto; padding: 1.25rem clamp(1.3rem, 5vw, 3rem) 2.4rem; background: white; box-shadow: 0 0 45px rgba(19,59,48,.08); }
+.flow { width: min(100%, 74rem); min-height: 100dvh; margin: 0 auto; padding: 1.25rem clamp(1.3rem, 5vw, 4rem) 2.4rem; background: white; }
 .flowHeader { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .flowBody { padding-top: clamp(2.5rem, 9vh, 5.5rem); }
 .flowTitle { margin-top: .55rem; font-family: Georgia, 'Times New Roman', serif; color: #063a3d; font-size: clamp(2.25rem, 8vw, 3.4rem); line-height: 1.02; letter-spacing: -.045em; }
@@ -79,7 +80,7 @@
 .answer:hover { border-color: var(--green); background: #f6fbf9; }
 .urgent { margin-top: 1.2rem; border: 2px solid #b3261e; border-radius: 1rem; background: #fff3f1; padding: 1rem; color: #701914; }
 
-.app { min-height: 100dvh; display: grid; grid-template-columns: 13.6rem minmax(0, 1fr) 19.5rem; background: #f7faf7; }
+.app { min-height: 100dvh; width: 100%; display: grid; grid-template-columns: 15rem minmax(0, 1fr) 22rem; background: #f7faf7; }
 .sidebar { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; padding: 1rem .8rem; border-inline-end: 1px solid var(--line); background: white; }
 .sidebar .brand { padding: .2rem .35rem 1.5rem; }
 .navLabel { margin: .5rem .45rem .4rem; color: #91a29d; font-size: .65rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
@@ -90,8 +91,11 @@
 .profile strong { color: var(--ink); }
 
 .main { min-width: 0; padding: 1.25rem clamp(1rem, 3vw, 2.2rem) 6rem; }
-.mainInner { max-width: 52rem; margin: 0 auto; }
+.mainInner { width: 100%; max-width: 78rem; margin: 0 auto; }
 .pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.headerActions { display: flex; align-items: center; gap: .55rem; }
+.headerLogout { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border: 1px solid var(--line); border-radius: .75rem; color: var(--green); background: white; cursor: pointer; }
+.sessionButton { display: flex; width: 100%; align-items: center; gap: .45rem; margin-top: .75rem; border: 0; padding: .5rem 0; color: var(--green); background: transparent; font: inherit; font-weight: 750; text-align: start; text-decoration: none; cursor: pointer; }
 .pageTitle { font-family: Georgia, 'Times New Roman', serif; color: #063a3d; font-size: clamp(2rem, 5vw, 3rem); line-height: 1; letter-spacing: -.045em; }
 .subtle { color: var(--muted); font-size: .88rem; }
 .heroCard { position: relative; overflow: hidden; margin-top: 1.7rem; border-radius: 1.7rem; padding: clamp(1.35rem, 4vw, 2.2rem); color: white; background: var(--green); box-shadow: 0 1.1rem 2.8rem rgba(6, 121, 106, .14); }
@@ -110,6 +114,10 @@
 .ticket small { display: block; color: var(--muted); }
 .status { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1rem; border-radius: 99px; padding: .35rem .65rem; color: var(--green); background: #daf1e9; font-size: .72rem; font-weight: 800; }
 .metric { margin-top: .75rem; font-family: Georgia, 'Times New Roman', serif; font-size: 2rem; color: #073d3d; }
+.metric small { font-family: inherit; font-size: .8rem; color: var(--muted); }
+.statGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
+.statGrid > div { border-radius: .9rem; padding: .85rem; background: var(--mint); }
+.statGrid > div strong { display: block; margin-top: .35rem; color: var(--green-dark); font-size: 1.25rem; }
 .readingList { display: grid; gap: .6rem; margin-top: 1rem; }
 .reading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #e9efec; padding-bottom: .6rem; color: var(--muted); font-size: .8rem; }
 .reading strong { color: var(--ink); font-size: 1.05rem; }
@@ -117,6 +125,11 @@
 .sectionHead h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 2.25rem; }
 .empty { margin-top: 1rem; border: 1px dashed #c8dcd4; border-radius: 1rem; padding: 1.2rem; color: var(--muted); background: #f9fcfa; }
 .formCard { max-width: 36rem; }
+.habitGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin: .75rem 0 1.2rem; }
+.habitButton { display: flex; min-height: 3.2rem; align-items: center; justify-content: center; gap: .4rem; border: 1px solid var(--line); border-radius: .8rem; padding: .55rem; color: var(--muted); background: white; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer; }
+.habitButton svg { opacity: .35; }
+.habitActive { border-color: var(--green); color: var(--green-dark); background: var(--mint); }
+.habitActive svg { opacity: 1; }
 .rowActions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
 .rowActions .primary, .rowActions .secondary { width: auto; min-width: 9rem; margin: 0; }
 .checkRow { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-top: 1px solid #e7efec; padding: .85rem 0; }
@@ -148,6 +161,9 @@
 }
 
 @media (max-width: 720px) {
+  .welcome { padding-inline: 1.1rem; }
+  .hero { display: block; padding-top: 2.5rem; }
+  .heroImage { min-height: 0; aspect-ratio: 16 / 9; margin-top: 1.35rem; }
   .welcomeTop { gap: .35rem; }
   .welcomeTop .brand { gap: .35rem; font-size: 1.15rem; }
   .welcomeTop .brand img { width: 2.15rem; height: 2.15rem; }
@@ -157,6 +173,7 @@
   .sidebar { display: none; }
   .main { padding: 1rem 1rem 6.5rem; }
   .grid2 { grid-template-columns: 1fr; }
+  .statGrid, .habitGrid { grid-template-columns: 1fr; }
   .mobileNav { position: fixed; z-index: 20; inset-inline: .65rem; bottom: .65rem; display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); border-radius: 1.1rem; padding: .35rem; background: rgba(255,255,255,.96); box-shadow: 0 .5rem 2rem rgba(20,55,45,.17); backdrop-filter: blur(12px); }
   .mobileNav .navButton { min-width: 0; min-height: 3.2rem; justify-content: center; gap: .15rem; padding: .3rem; flex-direction: column; font-size: .58rem; }
   .choiceGrid { grid-template-columns: 1fr; }

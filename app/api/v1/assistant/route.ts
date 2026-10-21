@@ -26,6 +26,25 @@ export function OPTIONS() {
   return corsOptions();
 }
 
+async function callGemini(message: string, locale: Locale, context: unknown): Promise<string | null> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: [{ text: `Language: ${locale}\nContext: ${JSON.stringify(context)}\nQuestion: ${message}` }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 180 },
+    }),
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!response.ok) return null;
+  const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+  return payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim() || null;
+}
+
 async function callGroq(message: string, locale: Locale, context: unknown): Promise<string | null> {
   const key = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL;
@@ -87,6 +106,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const gemini = await callGemini(message, locale, context);
+    if (gemini) {
+      return json({ text: guard(gemini, locale).text, urgent: false, provider: "gemini" });
+    }
     const groq = await callGroq(message, locale, context);
     if (groq) {
       return json({ text: guard(groq, locale).text, urgent: false, provider: "groq" });

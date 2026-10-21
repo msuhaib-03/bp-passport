@@ -144,13 +144,26 @@ export function AccountPanel({ locale }: { locale: string }) {
     const client = getSupabaseBrowserClient();
     if (!client) return;
     setBusy(true);
-    const result = await client.auth.signOut();
+    setError("");
+    setMessage("");
+    const session = await client.auth.getSession();
+    let revocationFailed = false;
+    if (session.data.session?.access_token) {
+      const response = await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.data.session.access_token}` },
+      }).catch(() => null);
+      revocationFailed = !response?.ok;
+    }
+    const result = await client.auth.signOut({ scope: "global" });
     setBusy(false);
     if (result.error) {
       setError(result.error.message);
       return;
     }
-    setMessage("Signed out. The local copy stays on this device but will not be attached to another account.");
+    setMessage(revocationFailed
+      ? "Signed out globally. Immediate API revocation was unavailable, so this access token will remain valid only until its normal expiry."
+      : "Signed out everywhere. This session is immediately blocked from the API; the local Passport stays on this device.");
   }
 
   async function resendConfirmation() {
