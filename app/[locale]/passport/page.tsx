@@ -5,6 +5,7 @@ import { PassportView } from "@/components/passport/PassportView";
 
 export const metadata: Metadata = {
   title: "My Passport",
+  description: "Review your private blood-pressure history, consent settings, and clinician-sharing controls.",
   robots: { index: false, follow: false },
 };
 

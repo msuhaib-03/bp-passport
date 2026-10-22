@@ -3,7 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { PatientRecord } from "@/components/clinician/PatientRecord";
 
-export const metadata: Metadata = { title: "Shared patient record", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Shared patient record", description: "A private, time-limited blood-pressure record shared by a BP Passport patient.", robots: { index: false, follow: false } };
 
 export default async function SharedPatientPage({ params }: { params: Promise<{ locale: string; reference: string }> }) {
   const { locale, reference } = await params;

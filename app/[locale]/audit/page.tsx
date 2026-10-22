@@ -3,7 +3,10 @@ import { setRequestLocale } from "next-intl/server";
 
 import { AuditFlow } from "@/components/audit/AuditFlow";
 
-export const metadata: Metadata = { title: "Heart Audit" };
+export const metadata: Metadata = {
+  title: "60-second health check",
+  description: "Answer a short, bilingual blood-pressure health check and receive a clear, safety-first next step.",
+};
 
 export default async function AuditPage({
   params,

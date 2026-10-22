@@ -6,6 +6,7 @@ import { Link } from "@/lib/i18n/navigation";
 
 export const metadata: Metadata = {
   title: "Programme administration",
+  description: "Protected BP Passport programme operations and clinician review console.",
   robots: { index: false, follow: false },
 };
 

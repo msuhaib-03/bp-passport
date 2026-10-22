@@ -106,7 +106,7 @@ const NAV: Array<{ id: AppView; label: string; icon: typeof Home }> = [
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <span className={styles.brand}>
-      <Image src="/heartline-logo.png" width={48} height={48} alt="" priority />
+      <Image src="/heartline-logo.png" width={48} height={48} alt="BP Passport heart-and-pulse logo" priority />
       <span>
         BP Passport
         {!compact && <small className={styles.byline}>by PharmEvo</small>}

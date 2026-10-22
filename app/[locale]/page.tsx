@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, Bot, FileHeart, HeartPulse, Languages, Lock, Settings, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 
+import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { Link } from "@/lib/i18n/navigation";
+
+export const metadata: Metadata = {
+  title: "Free blood-pressure check",
+  description: "Understand your blood pressure in about a minute, save readings, and share a clear report with a clinician when you choose.",
+};
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -51,11 +58,11 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   ];
 
   return (
-    <main className="min-h-dvh overflow-x-hidden bg-[#edf4ef] px-0 sm:px-5 sm:py-5">
+    <main className="min-h-dvh overflow-x-hidden bg-[#edf4ef] px-0 pb-24 sm:px-5 sm:py-5 sm:pb-5">
       <section className="mx-auto min-h-dvh w-full max-w-[1440px] overflow-hidden bg-white px-5 py-5 sm:min-h-0 sm:rounded-[2rem] sm:px-12 sm:py-8">
         <header className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <span className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-[#078679]">
-            <Image src="/heartline-logo.png" width={42} height={42} alt="" priority />
+            <Image src="/heartline-logo.png" width={42} height={42} alt="BP Passport heart-and-pulse logo" priority />
             <span>BP Passport<small className="block text-[9px] font-extrabold tracking-[.2em] text-[#81908b] uppercase">by PharmEvo</small></span>
           </span>
           <div className="flex items-center gap-2">
@@ -77,7 +84,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <Link href="/care" className="mt-7 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#078679] px-6 font-extrabold text-white shadow-[0_12px_25px_rgb(7_134_121/0.2)]">{copy.start} <ArrowRight size={19} className="rtl:rotate-180" /></Link>
             <Link href="/care" className="mt-3 flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-[#cce1d8] px-6 font-bold text-[#078679]"><Bot size={18} /> {copy.ask}</Link>
           </div>
-          <div className="relative aspect-[4/3] min-h-[24rem] overflow-hidden rounded-[1.8rem] bg-[#f4e8cd]">
+          <div className="relative aspect-[4/3] min-h-64 overflow-hidden rounded-[1.8rem] bg-[#f4e8cd] sm:min-h-[24rem]">
             <Image src="/heartline-bp-guidance.png" fill sizes="(max-width: 1024px) 92vw, 680px" className="object-cover" alt="A man calmly checking his blood pressure at home" priority />
           </div>
         </section>
@@ -94,8 +101,12 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           </div>
         </section>
 
-        <footer className="mx-auto mt-8 flex max-w-7xl gap-2 border-t border-[#e2ece8] pt-5 text-xs leading-5 text-[#758781]"><ShieldCheck size={16} className="mt-0.5 shrink-0" /><p>{copy.disclaimer}</p></footer>
+        <aside className="mx-auto mt-8 flex max-w-7xl gap-2 border-t border-[#e2ece8] pt-5 text-xs leading-5 text-[#758781]"><ShieldCheck size={16} className="mt-0.5 shrink-0" aria-hidden /><p>{copy.disclaimer}</p></aside>
       </section>
+      <div className="mx-auto max-w-[1440px] sm:mt-5 sm:overflow-hidden sm:rounded-[2rem]"><SiteFooter locale={locale} /></div>
+      <Link href="/audit" className="fixed inset-x-3 bottom-[max(.75rem,env(safe-area-inset-bottom))] z-40 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#078679] px-5 font-extrabold text-white shadow-[0_14px_36px_rgb(7_56_58/.3)] sm:hidden">
+        {copy.start}<ArrowRight size={19} className="rtl:rotate-180" aria-hidden />
+      </Link>
     </main>
   );
 }

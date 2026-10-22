@@ -140,6 +140,7 @@ const URDU: Record<string, string> = {
   "Choose what a trusted person may see. No messages are sent automatically.": "منتخب کریں کہ قابلِ اعتماد شخص کیا دیکھ سکتا ہے۔ کوئی پیغام خودکار طور پر نہیں بھیجا جاتا۔",
   "Your care circle": "آپ کا نگہداشت حلقہ",
   "Saved on this device until cloud invitations are configured.": "کلاؤڈ دعوتیں ترتیب پانے تک اس آلے پر محفوظ۔",
+  "A trusted family caregiver helping with a health plan": "صحت کے منصوبے میں مدد کرنے والا قابلِ اعتماد خاندانی نگہداشت کنندہ",
   "Name": "نام",
   "Relationship": "رشتہ",
   "Family member, friend…": "خاندان کا فرد، دوست…",

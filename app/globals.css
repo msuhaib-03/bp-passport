@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "../app";
+@source "../components";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BP PASSPORT DESIGN SYSTEM

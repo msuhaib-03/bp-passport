@@ -7,6 +7,9 @@ import { setRequestLocale } from "next-intl/server";
 import { DIRECTION, routing, type Locale } from "@/lib/i18n/routing";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { GlobalLocaleSwitch } from "@/components/ui/GlobalLocaleSwitch";
+import { Analytics } from "@/components/analytics/Analytics";
+import { CookieBanner } from "@/components/privacy/CookieBanner";
+import { SITE_ORIGIN, TEAM } from "@/lib/site";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -14,6 +17,7 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: "BP Passport — understand and track your blood pressure",
     template: "%s · BP Passport",
@@ -21,7 +25,30 @@ export const metadata: Metadata = {
   description:
     "A free, bilingual blood-pressure check for Pakistan. Sixty seconds, no download, no cost. Understand your reading and track it over time.",
   applicationName: "BP Passport",
+  authors: TEAM.map((member) => ({ name: member.name, url: member.portfolio })),
+  creator: "BP Passport",
+  publisher: "BP Passport",
+  category: "health",
+  keywords: ["blood pressure", "hypertension", "Pakistan", "health tracking", "Urdu health app"],
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/pwa-192.png", sizes: "192x192", type: "image/png" }],
+    shortcut: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/pwa-192.png", sizes: "192x192", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    siteName: "BP Passport",
+    title: "BP Passport — understand and track your blood pressure",
+    description: "A free, bilingual blood-pressure check and tracker built for Pakistan.",
+    locale: "en_PK",
+    alternateLocale: ["ur_PK"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BP Passport — blood pressure, understood",
+    description: "A free, bilingual blood-pressure check and tracker built for Pakistan.",
+  },
   appleWebApp: { capable: true, title: "BP Passport", statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };
@@ -80,6 +107,8 @@ export default async function LocaleLayout({
           <div id="main">{children}</div>
           <GlobalLocaleSwitch />
           <PwaRegister />
+          <Analytics />
+          <CookieBanner />
         </NextIntlClientProvider>
       </body>
     </html>

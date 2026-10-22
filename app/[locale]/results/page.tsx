@@ -5,6 +5,7 @@ import { ResultView } from "@/components/result/ResultView";
 
 export const metadata: Metadata = {
   title: "Your result",
+  description: "Your private BP Passport screening result and safety-first next step.",
   // Results are personal health data. Never index, never cache in a shared proxy.
   robots: { index: false, follow: false },
 };

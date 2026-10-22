@@ -4,7 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { ClinicianPortal } from "@/components/clinician/ClinicianPortal";
 import { Link } from "@/lib/i18n/navigation";
 
-export const metadata: Metadata = { title: "Clinician portal", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Clinician portal", description: "Clinician workspace for reviewing time-limited patient-authorized BP Passport records.", robots: { index: false, follow: false } };
 
 export default async function PortalPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

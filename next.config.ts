@@ -6,6 +6,9 @@ const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    globalNotFound: true,
+  },
 
   // Every clinical surface is served over HTTPS with a locked-down header set.
   // CSP is deliberately strict: the DRAP Class A posture means no third-party

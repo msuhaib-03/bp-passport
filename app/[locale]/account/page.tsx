@@ -6,6 +6,7 @@ import { Link } from "@/lib/i18n/navigation";
 
 export const metadata: Metadata = {
   title: "My account",
+  description: "Create or sign in to a BP Passport account to keep your readings available across devices.",
   robots: { index: false, follow: false },
 };
 
