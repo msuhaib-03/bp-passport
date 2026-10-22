@@ -312,4 +312,4 @@ Numbers are never generated. The 14-day mean ± SD is computed in SQL and passed
 
 ## Licence
 
-Proprietary. © PharmEvo (Pvt.) Ltd.
+Proprietary. © BP Passport.

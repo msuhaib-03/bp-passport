@@ -9,9 +9,17 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 type Mode = "login" | "register" | "recover" | "update-password";
 const AUTH_RETURN_KEY = "bpp.auth.return.v1";
 
-export function AccountPanel({ locale, destination = "care" }: { locale: string; destination?: "care" | "portal" }) {
+export function AccountPanel({
+  locale,
+  destination = "care",
+  initialMode = "login",
+}: {
+  locale: string;
+  destination?: "care" | "portal";
+  initialMode?: Extract<Mode, "login" | "register">;
+}) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -253,7 +261,7 @@ export function AccountPanel({ locale, destination = "care" }: { locale: string;
             Sign in
           </ModeButton>
           <ModeButton active={mode === "register"} onClick={() => switchMode("register")} icon={UserPlus}>
-            Register
+            Create account
           </ModeButton>
         </div>
       )}

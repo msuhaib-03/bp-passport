@@ -23,7 +23,6 @@
 }
 
 .brand img { width: 2.65rem; height: 2.65rem; object-fit: contain; }
-.byline { display: block; margin-top: -.15rem; color: #7c8f89; font-size: .62rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
 
 .welcome {
   width: 100%;
@@ -34,6 +33,9 @@
 }
 
 .welcomeTop { display: flex; max-width: 78rem; margin: 0 auto; align-items: center; justify-content: space-between; gap: 1rem; }
+.welcomeActions { display: flex; align-items: center; gap: .55rem; }
+.accountLink, .accountPrimary, .accountSecondary, .headerAccount { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; text-decoration: none; font-weight: 800; }
+.accountLink { min-height: 3rem; border: 1px solid #cce0d8; border-radius: 999px; padding: .55rem .85rem; color: var(--green); background: white; font-size: .8rem; }
 .hero { display: grid; max-width: 78rem; margin: 0 auto; grid-template-columns: minmax(18rem, .85fr) minmax(28rem, 1.15fr); grid-auto-rows: auto; column-gap: clamp(2rem, 6vw, 6rem); align-items: start; padding-top: clamp(2.3rem, 8vh, 5rem); }
 .hero > .eyebrow, .hero > .display, .hero > .lede, .hero > .journey, .hero > .primary, .hero > .secondary { grid-column: 1; }
 .hero > .heroImage { grid-column: 2; grid-row: 1 / span 7; align-self: stretch; }
@@ -56,6 +58,10 @@
 .primary:hover { background: #06776d; }
 .primary:disabled { opacity: .45; cursor: not-allowed; }
 .secondary { margin-top: .65rem; color: var(--green); background: white; border: 1px solid #cce0d8; }
+.accountActions { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .7rem; }
+.accountPrimary, .accountSecondary { min-height: 3.1rem; border-radius: .9rem; padding: .65rem .8rem; font-size: .82rem; }
+.accountPrimary { color: white; background: var(--ink); }
+.accountSecondary { color: var(--green); border: 1px solid #cce0d8; background: white; }
 .textButton { color: var(--green); border: 0; background: transparent; font: inherit; font-weight: 750; cursor: pointer; }
 
 .flow { width: min(100%, 74rem); min-height: 100dvh; margin: 0 auto; padding: 1.25rem clamp(1.3rem, 5vw, 4rem) 2.4rem; background: white; }
@@ -95,6 +101,7 @@
 .pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .headerActions { display: flex; align-items: center; gap: .55rem; }
 .headerLogout { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border: 1px solid var(--line); border-radius: .75rem; color: var(--green); background: white; cursor: pointer; }
+.headerAccount { min-height: 2.7rem; border: 1px solid var(--line); border-radius: .75rem; padding: .45rem .75rem; color: var(--green); background: white; font-size: .76rem; }
 .sessionButton { display: flex; width: 100%; align-items: center; gap: .45rem; margin-top: .75rem; border: 0; padding: .5rem 0; color: var(--green); background: transparent; font: inherit; font-weight: 750; text-align: start; text-decoration: none; cursor: pointer; }
 .pageTitle { font-family: Georgia, 'Times New Roman', serif; color: #063a3d; font-size: clamp(2rem, 5vw, 3rem); line-height: 1; letter-spacing: -.045em; }
 .subtle { color: var(--muted); font-size: .88rem; }
@@ -168,6 +175,8 @@
   .welcomeTop .brand { gap: .35rem; font-size: 1.15rem; }
   .welcomeTop .brand img { width: 2.15rem; height: 2.15rem; }
   .welcomeTop button { padding-inline: .65rem; font-size: .72rem; }
+  .welcomeActions { gap: .35rem; }
+  .accountLink { width: 2.8rem; padding: 0; font-size: 0; }
   .display { font-size: clamp(2.2rem, 11vw, 2.85rem); }
   .app { display: block; }
   .sidebar { display: none; }

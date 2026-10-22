@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, Bot, FileHeart, HeartPulse, Languages, Lock, Settings, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
+import { ArrowRight, Bot, FileHeart, HeartPulse, Languages, Lock, LogIn, Settings, ShieldCheck, Stethoscope, UserPlus, UserRound } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 
 import { SiteFooter } from "@/components/marketing/SiteFooter";
@@ -63,11 +63,13 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
         <header className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <span className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-[#078679]">
             <Image src="/heartline-logo.png" width={42} height={42} alt="BP Passport heart-and-pulse logo" priority />
-            <span>BP Passport<small className="block text-[9px] font-extrabold tracking-[.2em] text-[#81908b] uppercase">by PharmEvo</small></span>
+            <span>BP Passport</span>
           </span>
           <div className="flex items-center gap-2">
             <a href="#workspaces" className="hidden text-sm font-bold text-[#55706a] md:inline">{locale === "ur" ? "پورٹلز" : "Workspaces"}</a>
-            <Link href="/account" className="hidden text-sm font-bold text-[#55706a] sm:inline">Account</Link>
+            <Link href="/account?mode=login" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#c6ddd7] px-3 text-sm font-bold text-[#176b63]" aria-label={locale === "ur" ? "سائن اِن یا اکاؤنٹ" : "Sign in or account"}>
+              <UserRound size={16} aria-hidden /><span className="hidden sm:inline">{locale === "ur" ? "اکاؤنٹ" : "Account"}</span>
+            </Link>
             <Link href="/" locale={locale === "en" ? "ur" : "en"} className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#cad9e4] px-3 text-sm font-bold text-[#123d55]"><Languages size={16} />{locale === "en" ? "اردو" : "EN"}</Link>
           </div>
         </header>
@@ -77,6 +79,10 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <p className="text-xs font-extrabold tracking-[.16em] text-[#6b817b] uppercase">{copy.eyebrow}</p>
             <h1 className="mt-3 font-serif text-[clamp(2.5rem,5.5vw,5.4rem)] leading-[.96] tracking-[-.055em] text-[#063a3d]">{copy.title}</h1>
             <p className="mt-5 max-w-lg leading-7 text-[#5f7570]">{copy.subtitle}</p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <Link href="/account?mode=register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#07383a] px-3 text-center text-sm font-extrabold text-white"><UserPlus size={17} aria-hidden />{locale === "ur" ? "اکاؤنٹ بنائیں" : "Create account"}</Link>
+              <Link href="/account?mode=login" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#bcd8cf] px-3 text-center text-sm font-extrabold text-[#176b63]"><LogIn size={17} aria-hidden />{locale === "ur" ? "سائن اِن" : "Sign in"}</Link>
+            </div>
             <div className="mt-5 grid grid-cols-2 gap-2">
               <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.understand}</strong>{copy.understandBody}</div>
               <div className="rounded-2xl border border-[#d8e8e1] bg-[#f3faf7] p-3 text-xs text-[#5e746f]"><strong className="block text-[#078679]">{copy.guide}</strong>{copy.guideBody}</div>

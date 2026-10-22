@@ -67,6 +67,7 @@ const URDU: Record<string, string> = {
   "Local care profile": "مقامی نگہداشت پروفائل",
   "Account & sync": "اکاؤنٹ اور سنک",
   "Sign in": "سائن اِن",
+  "Create account": "اکاؤنٹ بنائیں",
   "Sign out everywhere": "ہر جگہ سے سائن آؤٹ",
   "Signing out…": "سائن آؤٹ ہو رہا ہے…",
   "Let's take care of your heart today.": "آج اپنے دل کا خیال رکھیں۔",

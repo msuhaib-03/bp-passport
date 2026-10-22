@@ -103,13 +103,12 @@ const NAV: Array<{ id: AppView; label: string; icon: typeof Home }> = [
   { id: "caregiver", label: "Caregiver", icon: Users },
 ];
 
-function Brand({ compact = false }: { compact?: boolean }) {
+function Brand() {
   return (
     <span className={styles.brand}>
       <Image src="/heartline-logo.png" width={48} height={48} alt="BP Passport heart-and-pulse logo" priority />
       <span>
         BP Passport
-        {!compact && <small className={styles.byline}>by PharmEvo</small>}
       </span>
     </span>
   );
@@ -173,7 +172,13 @@ export function BpPassportCare() {
       return (
         <main className={styles.shell}>
           <section className={styles.welcome}>
-            <div className={styles.welcomeTop}><Brand /><LocaleSwitch /></div>
+            <div className={styles.welcomeTop}>
+              <Brand />
+              <div className={styles.welcomeActions}>
+                <Link href="/account?mode=login" className={styles.accountLink}><LogIn size={16} />{t("Sign in")}</Link>
+                <LocaleSwitch />
+              </div>
+            </div>
             <div className={styles.hero}>
               <p className={styles.eyebrow}>{t("Your everyday heart companion")}</p>
               <h1 className={styles.display}>{t("Your heart. Your health. One clear next step.")}</h1>
@@ -187,6 +192,10 @@ export function BpPassportCare() {
               </div>
               <button className={styles.primary} onClick={() => setIntro("access")}>{t("Start your health check")} <ArrowRight size={18} /></button>
               <button className={styles.secondary} onClick={() => { setIntro("dashboard"); setView("assistant"); }}><Bot size={18} /> {t("Ask BP Passport first")}</button>
+              <div className={styles.accountActions}>
+                <Link href="/account?mode=register" className={styles.accountPrimary}><UserRound size={17} />{t("Create account")}</Link>
+                <Link href="/account?mode=login" className={styles.accountSecondary}><LogIn size={17} />{t("Sign in")}</Link>
+              </div>
             </div>
           </section>
         </main>
@@ -386,7 +395,7 @@ function Dashboard({
             <div className={styles.headerActions}>
               <Link href="/" className={styles.headerLogout} aria-label={t("Back")}><Home size={18} /></Link>
               <LocaleSwitch />
-              {signedIn && <button type="button" className={styles.headerLogout} onClick={() => void logout()} disabled={loggingOut} aria-label={t("Sign out everywhere")}><LogOut size={18} /></button>}
+              {signedIn ? <button type="button" className={styles.headerLogout} onClick={() => void logout()} disabled={loggingOut} aria-label={t("Sign out everywhere")}><LogOut size={18} /></button> : <Link href="/account?mode=login" className={styles.headerAccount}><LogIn size={17} />{t("Sign in")}</Link>}
             </div>
           </div>
           {view === "home" && <CareHomeView locale={locale} care={care} passport={passport} setView={setView} />}
